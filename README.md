@@ -1,2 +1,3 @@
 # MSstatsSampleSize
- Simulation tool for optimal design of high-dimensional MS-based proteomics experiment
+
+MSstatsSampleSize uses as input a list of proteins quantified in mass spectrometry runs, and their annotations in terms of biological replicates and their membership in a group (such as a disease).  The package estimates the variance in the input and simulates data with certain number of biological replicates based on the variance estimation. It reports the mean predictive accuracy of the classifier and mean protein importance over multiple iterations of the simulation. While varying the number of biological replicates to simulate, the sample size which generates the largest predictive accuracy is estimated. And the proteins which can best separate different conditions are reported.

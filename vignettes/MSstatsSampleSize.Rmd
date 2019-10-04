@@ -1,0 +1,322 @@
+---
+title: "MSstatsSampleSize : A package for optimal design of high-dimensional MS-based proteomics experiment"
+author: "Ting Huang (<thuang0703@gmail.com>), Meena Choi (<mnchoi67@gmail.com>), Olga Vitek(<o.vitek@northeastern.edu>)"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{MSstatsSampleSize User Guide}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r}
+library(MSstatsSampleSize)
+```
+
+
+This vignette introduces all the functionalities and summarizes their options in MSstatsSampleSize. MSstatsSampleSize requires protein abundances quantified in mass spectrometry runs as a matrix (columns for biological replicates (samples) and rows for proteins) and annotation including biological replicates (samples) and their condition (such as a disease and time points). MSstatsSampleSize includes the following functionalities:
+1. `estimateVar`: estimates the variance across biological replicates and MS run for each protein.
+2. `simulateDataset`: simulates data with the given number(s) of biological replicates based on the variance estimation. 
+3. `designSampleSizeClassification` : fit the classification model (five classifier are provided) on each simulation and reports the mean predictive accuracy of the classifier and mean protein importance over multiple iterations of the simulation. The sample size per condition, which generates the largest predictive accuracy, is estimated, while varying the number of biological replicates to simulate. Also, the proteins, which can classify the conditions best, are reported. The reported sample size per condition can be used to design future experiments.
+
+In addition, MSstatsTMT includes the following visualization plots for sample size estimation: 
+
+1. `meanSDplot`: draw the plot for the mean protein abundance vs standard deviation in each condition for the input preliminary data. It can exhibit the quality of input data.
+2. `designSampleSizeClassificationPlots`: make PCA plots for the simulated data with certain sample size.
+3. `designSampleSizePCAplot`: visualize sample size calculation in classification, including predictive accuracy plot and protein importance plot for different sample sizes. 
+
+
+## 1. Estimate mean protein abundance and variance per condition
+
+### 1.1 estimateVar()
+
+The function fits intensity-based linear model on the prelimiary data (Input, here is `data`). This function outputs variance components and mean abundance for each protein.
+
+
+#### Arguments
+
+* `data` : Data matrix with protein abundance. Rows are proteins and columns are Biological replicates or samples.
+* `annotation` : annotation Group information for samples in data. `BioReplicate` for sample ID and `Condition` for group information are required. `BioReplicate` information should be the same with the column of `data`.
+
+#### Example
+```{r}
+# # read in protein abundance sheet
+# # The CSV sheet has 261 columns.
+# # Each row is protein and each column (except the first column) is biological replicate.
+# # The first column 'Protein' contains the protein names.
+
+# OV_SRM_train <- read.csv(file = "OV_SRM_train.csv")
+# # assign the column 'Protein' as row names
+# rownames(OV_SRM_train) <- OV_SRM_train$Protein 
+# # remove the column 'Protein
+# OV_SRM_train <- OV_SRM_train[, colnames(OV_SRM_train)!="Protein"]
+head(OV_SRM_train)
+
+# Read in annotation including condition and biological replicates.
+# Users should make this annotation file.
+# OV_SRM_train_annotation <- read.csv(file="OV_SRM_train_annotation.csv", header=TRUE)
+head(OV_SRM_train_annotation)
+
+# estimate the mean protein abunadnce and variance in each condition
+variance_estimation <- estimateVar(data = OV_SRM_train, 
+                                   annotation = OV_SRM_train_annotation)
+
+# the mean protein abundance in each condition
+head(variance_estimation$mu)
+
+# the standard deviation in each condition
+head(variance_estimation$sigma)
+
+# the mean protein abundance across all the conditions
+head(variance_estimation$promean)
+```
+
+
+### 1.2 meanSDplot()
+
+This function draws the plot for the mean protein abundance (X-axis) vs standard deviation (Y-axis) in each condition. The `lowess` function is used to fit the LOWESS smoother between meann protein abundance and standard deviation. This function generates one pdf file with mean-SD plot.
+
+
+#### Arguments
+
+* `data` : A list with mean protein abundance matrix and standard deviation matrix. It should be the output of `estimateVar` function.
+* `x.axis.size` : Size of x-axis labeling in Mean-SD Plot. Default is 10.
+* `y.axis.size` : Size of y-axis labels. Default is 10.
+* `smoother_size` : Size of lowess smoother. Default is 1.
+* `width` : Width of the saved pdf file. Default is 4.
+* `height` : Height of the saved pdf file. Default is 4.
+* `xlimUp` : The upper limit of x-axis for mean-SD plot. Default is 30.
+* `ylimUp` : The upper limit of y-axis for mean-SD plot. Default is 3.
+* `address` : The name of folder that will store the results. Default folder is the current working directory. The other assigned folder has to be existed under the current working directory. An output pdf file is automatically created with the default name of `MeanSDPlot.pdf`. The command address can help to specify where to store the file as well as how to modify the beginning of the file name. If address=FALSE, plot will be not saved as pdf file but showed in window.
+
+#### Example
+```{r, eval=FALSE}
+#  output a pdf file with mean-SD plot
+meanSDplot(variance_estimation)
+```
+
+
+
+## 2. Simulates data with the given numbers of biological replicates and proteins based on the variance estimation
+
+### 2.1 simulateDataset()
+
+This function simulate datasets with the given numbers of biological replicates and proteins based on the preliminary data (input for this function). The function fits intensity-based linear model on the input prelimiary data `data` in order to get variance and mean abundance, using `estimateVar` function. Then it uses variance components and mean abundance to simulate new training data with the given sample size and protein number. It outputs the number of simulated proteins, a vector with the number of simulated samples in a condition, the list of simulated training datasets and the (simulated) validation dataset.
+
+
+#### Arguments
+
+* `data` : Protein abundance data matrix. Rows are proteins and columns are biological replicates(samples).
+* `annotation` : Group information for samples in data. `BioReplicate` for sample ID and `Condition` for group information are required. `BioReplicate` information should match with column names of `data`.
+* `num_simulations` :  Number of times to repeat simulation experiments (Number of simulated datasets). Default is 10.
+* `expected_FC` :  Expected fold change of proteins. The first option (Default) is `data`, indicating the fold changes are directly estimated from the input `data`. The second option is a vector with predefined fold changes of listed proteins. The vector names must match with the unique information of Condition in `annotation`. One group must be selected as a baseline and has fold change 1 in the vector. The user should provide list_diff_proteins, which users expect to have the fold changes greater than 1. Other proteins that are not available in `list_diff_proteins` will be expected to have fold change = 1.
+* `list_diff_proteins` : Vector of proteins names which are set to have fold changes greater than 1 between conditions. If user selected `expected_FC= `"data `" `, this should be NULL. 
+* `select_simulated_proteins` :  The standard to select the simulated proteins among data. It can be 1) `proportion` of total number of proteins in the input data or 2) `number` to specify the number of proteins. `proportion` indicates that user should provide the value for `protein_proportion` option. `number` indicates that user should provide the value for `protein_number` option.
+* `protein_proportion` :  Proportion of total number of proteins in the input data to simulate. For example, input data has 1,000 proteins and user selects `protein_proportion=0.1`. Proteins are ranked in decreasing order based on their mean abundance across all the samples. Then, 1,000 * 0.1 = 100 proteins will be selected from the top list to simulate. Default is 1.0, which meaans that all the proteins will be used.
+* `protein_number` :  Number of proteins to simulate. For example, `protein_number=1000`. Proteins are ranked in decreasing order based on their mean abundance across all the samples and top `protein_number` proteins will be selected to simulate. Default is 1000. 
+* `samples_per_group` : Number of samples per group to simulate. Default is 50.
+* `simulate_validation` : Default is FALSE. If TRUE, simulate the validation set; otherwise, the input `data` will be used as the validation set.
+* `valid_samples_per_group` : Number of validation samples per group to simulate. This option works only when user selects `simulate_validation=TRUE`. Default is 50.
+
+#### Example
+
+```{r message = FALSE , warning = FALSE}
+# expected_FC = "data": fold change estimated from OV_SRM_train
+# select_simulated_proteins = "proportion": select the simulated proteins based on the proportion of total proteins
+# simulate_valid = FALSE: use input OV_SRM_train as validation set
+simulated_datasets <- simulateDataset(data = OV_SRM_train,
+                                      annotation = OV_SRM_train_annotation,
+                                      num_simulations = 10, # simulate 10 times
+                                      expected_FC = "data", 
+                                      list_diff_proteins =  NULL,
+                                      select_simulated_proteins = "proportion",
+                                      protein_proportion = 1.0,
+                                      protein_number = 1000,
+                                      samples_per_group = 50, # 50 samples per condition
+                                      simulate_validation = FALSE, 
+                                      valid_samples_per_group = 50)
+```
+
+Explore the output from `simulateDataset` function
+```{r}
+# the number of simulated proteins
+simulated_datasets$num_proteins
+# a vector with the number of simulated samples in each condition
+simulated_datasets$num_samples
+# the list of simulated protein abundance matrices
+# Each element of the list represents one simulation
+head(simulated_datasets$simulation_train_Xs[[1]]) # first simulation
+# the list of simulated condition vectors
+# Each element of the list represents one simulation
+head(simulated_datasets$simulation_train_Ys[[1]]) # first simulation
+```
+
+User can also specify the expected fold change of proteins they consider to be differentially abundant between conditions.
+```{r message = FALSE , warning = FALSE, eval=FALSE}
+################################################################
+# expected_FC = expected_FC: user defined fold change
+unique(OV_SRM_train_annotation$Condition)
+expected_FC <- c(1, 1.2, 2)
+names(expected_FC) <- c("benign", "control", "ovarian cancer")
+set.seed(1212)
+# Here I randomly select some proteins as differential to show how the function works
+# The user should prepare this list of differential proteins by themselves
+diff_proteins <- sample(rownames(OV_SRM_train), 20)
+simualted_datasets_predefined_FC <- simulateDataset(data = OV_SRM_train,
+                                      annotation = OV_SRM_train_annotation,
+                                      num_simulations = 10, # simulate 10 times
+                                      expected_FC = expected_FC,
+                                      list_diff_proteins =  diff_proteins,
+                                      select_simulated_proteins = "proportion",
+                                      protein_proportion = 1.0,
+                                      protein_number = 1000,
+                                      samples_per_group = 50, # 50 samples per condition
+                                      simulate_validation = FALSE,
+                                      valid_samples_per_group = 50)
+
+```
+
+
+
+## 3. Sample size estimation in classification
+
+### 3.1. designSampleSizeClassification()
+
+This function fits the statistical model for classification, in order to classify the subjects groups in the simulated training datasets (in the output of `simulatedDataset`). Then the fitted model is validated by the (simulated) validation set. Two performance are reported :
+(1) the mean predictive accuracy : The function trains classifier on each simulated training dataset and reports the predictive accuracy of the trained classifier on the validation data (output of `SimulateDataset` function). Then these predictive accuracies are averaged over all the simulation.
+(2) the protein importance : It represents the importance of a protein in separating different groups. It is estimated using function `varImp` from package caret. Please refer to the help file of `varImp` about how each classifier calculates the protein importance.
+
+The sample size per condition, which generates the largest predictive accuracy, is calculated, while varying the number of biological replicates to simulate. Also, the proteins, which can classify the conditions best, are reported. The reported sample size per condition can be used to design future experiments. The list of classification models trained on each simulated dataset and the predictive accuracy on the validation set predicted by the corresponding classification model is also reported.
+
+
+### Arguments
+
+* `simulations` : A list of simulated datasets It should be the name of the output of `SimulateDataset` function.
+* `classifier` : A string specifying which classfier to use. This function uses function `train` from package caret. The options are 1) rf (random forest calssifier, default option). 2) nnet (neural network), 3) svmLinear (support vector machines with linear kernel), 4) logreg(logistic regression), and 5) naive_bayes (naive_bayes).
+* `threads` : A user needs to specify the number of threads (clusters) for computation. Default is NULL. User can specify it. For example, `threads=4`.
+
+
+### Example
+
+```{r message = FALSE, warning = FALSE}
+classification_results <- designSampleSizeClassification(simulations = simulated_datasets)
+```
+
+Explore the output of `designSampleSizeClassification`
+```{r message = FALSE, warning = FALSE}
+# the number of simulated proteins
+classification_results$num_proteins
+# a vector with the number of simulated samples in each condition
+classification_results$num_samples
+# the mean predictive accuracy over all the simulated datasets,
+# which have same 'num_proteins' and 'num_samples'
+classification_results$mean_predictive_accuracy
+# the mean protein importance vector over all the simulated datasets,
+# the length of which is 'num_proteins'.
+head(classification_results$mean_feature_importance)
+```
+
+In order to speed up the running time, the package also provides parallel computation for `designSampleSizeClassification` function.
+```{r message = FALSE, warning = FALSE, eval=FALSE}
+## try parallel computation to speed up
+## The parallel computation may cause error while allocating the core resource
+## Then the users can try the abova function without parallel computation
+classification_results_parallel <- designSampleSizeClassification(simulations = simulated_datasets,
+                                                                  threads = 4)
+```
+
+
+### 3.2 designSampleSizeClassificationPlots()
+
+This function visualizes for sample size calculation in classification. Mean predictive accuracy and mean protein importance under each sample size is from the input `data`, which is the output from function `designSampleSizeClassification`. To illustrate the mean predictive accuracy and protein importance under different sample sizes, it generates two types of plots in pdf files as output : 
+
+(1) The predictive accuracy plot shows the mean predictive accuracy under different sample sizes. The X-axis represents different sample sizes and y-axis represents the mean predictive accuracy.
+
+(2) The protein importance plot includes multiple subplots. The number of subplots is equal to `list_samples_per_group`. Each subplot shows the top `num_important_proteins_show` most important proteins under each sample size. The Y-axis of each subplot is the protein name and X-axis is the mean protein importance under the sample size.
+
+
+#### Arguments
+
+* `data` : A list of outputs from function `designSampleSizeClassification`. Each element represents the results under a specific sample size. The input should include at least two simulation results with different sample sizes.
+* `list_samples_per_group` :  A vector includes the different sample sizes simulated. This is required. The number of simulation in the input `data` should be equal to the length of list_samples_per_group
+* `num_important_proteins_show` : The number of proteins to show in protein importance plot.
+* `x.axis.size` : Size of x-axis labeling in predictive accuracy plot and protein importance plot. Default is 10.
+* `y.axis.size` : Size of y-axis labels in predictive accuracy plot and protein importance plot. Default is 10.
+* `predictive_accuracy_plot_width` : Width of the saved pdf file for predictive accuracy plot. Default is 4.
+* `predictive_accuracy_plot_height` : Height of the saved pdf file for predictive accuracy plot. Default is 4.
+* `protein_importance_plot_width` : Width of the saved pdf file for protein importance plot. Default is 3.
+* `protein_importance_plot_height` : Height of the saved pdf file for protein importance plot. Default is 10.
+* `ylimUp_predictive_accuracy` : The upper limit of y-axis for predictive accuracy plot. Default is 1. The range should be 0 to 1.
+* `ylimDown_predictive_accuracy` : The lower limit of y-axis for predictive accuracy plot. Default is 0.0. The range should be 0 to 1.
+* `address` : The name of folder that will store the results. Default folder is the current working directory. The other assigned folder has to be existed under the current working directory. An output pdf file is automatically created with the default name of `PredictiveAccuracyPlot.pdf` and `ProteinImportancePlot.pdf`. The command address can help to specify where to store the file as well as how to modify the beginning of the file name. If address=FALSE, plot will be not saved as pdf file but showed in window.
+
+
+#### Example
+
+```{r, eval=FALSE}
+#### sample size classification ####
+# simulate different sample sizes
+# 1) 25 biological replicats per group
+# 2) 50 biological replicats per group
+# 3) 75 biological replicats per group
+# 4) 100 biological replicats per group
+list_samples_per_group <- c(25, 50, 75, 100)
+
+# save the simulation results under each sample size
+multiple_sample_sizes <- list()
+
+for(i in 1:length(list_samples_per_group)){
+    # run simulation for each sample size
+    simulated_datasets <- simulateDataset(data = OV_SRM_train,
+                                      annotation = OV_SRM_train_annotation,
+                                      num_simulations = 10, # simulate 10 times
+                                      expected_FC = "data", 
+                                      list_diff_proteins =  NULL,
+                                      select_simulated_proteins = "proportion",
+                                      protein_proportion = 1.0,
+                                      protein_number = 1000,
+                                      samples_per_group = list_samples_per_group[i], # change sample size
+                                      simulate_valid = FALSE, 
+                                      valid_samples_per_group = 50)
+
+    # run classification performance estimation for each sample size
+    res <- designSampleSizeClassification(simulations = simualted_datasets)
+    
+    # save results
+    multiple_sample_sizes[[i]] <- res
+}
+
+## make the plots
+designSampleSizeClassificationPlots(multiple_sample_sizes,
+                                    list_samples_per_group)
+```
+
+
+## 4. Visualization for simulated datasets
+
+### 4.1 designSampleSizePCAplot()
+
+This function draws PCA plots for each simulated dataset. It outputs a pdf file where the number of page is equal to the number of simulations in `simulation` (input for this function). Each page presents a PCA plot under one simulation. X-axis of PCA plot is the first component and y-axis is the second component. This function can be used to validate whether the simulated dataset looks as expected.
+
+#### Arguments
+* `simulations` : A list of simulated datasets. It should be the output of `simulateDataset` function.
+* `x.axis.size` : Size of x-axis labeling in PCA Plot. Default is 10.
+* `y.axis.size` : Size of y-axis labels. Default is 10.
+* `dot.size` : Size of dots in PCA plot. Default is 3.
+* `legend.size` : Size of legend above Profile plot. Default is 7.
+* `width` : Width of the saved pdf file. Default is 6.
+* `height` : Height of the saved pdf file. Default is 5.
+* `address` : The name of folder that will store the results. Default folder is the current working directory. The other assigned folder has to be existed under the current working directory. An output pdf file is automatically created with the default name of `PCAPlot.pdf`. The command address can help to specify where to store the file as well as how to modify the beginning of the file name. If address=FALSE, plot will be not saved as pdf file but showed in window.
+
+#### Example
+```{r, eval=FALSE}
+#  output a pdf file with 10 PCA plots
+designSampleSizePCAplot(simulated_datasets)
+```
