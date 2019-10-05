@@ -11,7 +11,8 @@
 #' @references Huttenhain R and Choi M et al. (2019).
 #'  A targeted mass spectrometry strategy for developing proteomic biomarkers:
 #'  a case study of epithelial ovarian cancer.
-#' Molecular \& Cellular Proteomics 18(9):1836-1850. doi:10.1074/mcp.RA118.001221.
+#'  Mol Cell Proteomics 18(9):1836-1850.
+#'  doi:10.1074/mcp.RA118.001221.
 #' @format A numeric matrix with 68 rows and 260 columns.
 #' @examples
 #' head(OV_SRM_train)
@@ -32,7 +33,8 @@
 #' @references Huttenhain R and Choi M et al. (2019).
 #'  A targeted mass spectrometry strategy for developing proteomic biomarkers:
 #'  a case study of epithelial ovarian cancer.
-#'  Molecular \& Cellular Proteomics 18(9):1836-1850. doi:10.1074/mcp.RA118.001221.
+#'  Mol Cell Proteomics 18(9):1836-1850.
+#'  doi:10.1074/mcp.RA118.001221.
 #' @format A data frame with 260 rows and 2 variables.
 #' @examples
 #' head(OV_SRM_train_annotation)
