@@ -8,13 +8,13 @@ designSampleSizeClassification(simulations, classifier = "rf",
   threads = NULL)
 }
 \arguments{
-\item{simulations}{A list of simulated datasets It should be the name of the output of `SimulateDataset` function.}
+\item{simulations}{A list of simulated datasets It should be the name of the output of \code{\link{simulateDataset}} function.}
 
-\item{classifier}{A string specifying which classfier to use. This function uses function `train` from package caret.
+\item{classifier}{A string specifying which classfier to use. This function uses function `train' from package caret.
 The options are 1) rf (random forest calssifier, default option). 2) nnet (neural network),
-3) svmLinear (support vector machines with linear kernel), 4) logreg(logistic regression), and 5) naive_bayes (naive_bayes).}
+3) svmLinear (support vector machines with linear kernel), 4) logreg (logistic regression), and 5) naive_bayes (naive_bayes).}
 
-\item{threads}{A user needs to specify the number of threads (clusters) for computation. Default is NULL. User can specify it. For example, `threads=4`.}
+\item{threads}{A user needs to specify the number of threads (clusters) for computation. Default is NULL. User can specify it. For example, `threads=4'.}
 }
 \value{
 \emph{num_proteins} the number of simulated proteins.
@@ -25,24 +25,29 @@ The options are 1) rf (random forest calssifier, default option). 2) nnet (neura
 the predictive accuracy on the validation set predicted by the corresponding classification model.
 
 \emph{mean_predictive_accuracy} the mean predictive accuracy over all the simulated datasets,
-which have same `num_proteins` and `num_samples`.
+which have same `num_proteins' and `num_samples'.
 
 \emph{mean_feature_importance} the mean protein importance vector over all the simulated datasets,
-the length of which is `num_proteins`.
+the length of which is `num_proteins'.
 }
 \description{
 Estimate the mean predictive accuracy and protein importance over all the simulated datasets
 }
 \details{
 This function fits the statistical model for classification,
-in order to classify the subjects groups in the simulated training datasets (in the output of `simulatedDataset`).
-Then the fitted model is validated in by the (simulated) validation set. Two performance are reported :
+in order to classify the subjects in the simulated training datasets (the output of \code{\link{simulateDataset}}).
+Then the fitted model is validated by the (simulated) validation set (the output of \code{\link{simulateDataset}}).
+Two performance are reported :
+
 (1) the mean predictive accuracy : The function trains classifier on each simulated training dataset and
-reports the predictive accuracy of the trained classifier on the validation data (output of `SimulateDataset` function).
+reports the predictive accuracy of the trained classifier on the validation data (output of \code{\link{simulateDataset}} function).
 Then these predictive accuracies are averaged over all the simulation.
+
 (2) the protein importance : It represents the importance of a protein in separating different groups.
-It is estimated using function `varImp` from package caret. Please refer to the help file of `varImp` about
-how each classifier calculates the protein importance. The sample size per condition, which generates the largest predictive accuracy, is calculated,
+It is estimated using function `varImp' from package caret. Please refer to the help file of `varImp' about
+how each classifier calculates the protein importance.
+
+The sample size per condition, which generates the largest predictive accuracy, is calculated,
 while varying the number of biological replicates to simulate.
 Also, the proteins, which can classify the conditions best, are reported.
 The reported sample size per condition can be used to design future experiments.

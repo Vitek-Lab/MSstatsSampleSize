@@ -1,10 +1,10 @@
-#' PCA plots for each simulation
-#' @details This function draws PCA plots for each simulated dataset.
-#' It outputs a pdf file where the number of page is equal to the number of simulations in `simulation` (input for this function).
-#' Each page presents a PCA plot under one simulation. X-axis of PCA plot is the first component and y-axis is the second component.
+#' PCA plot for each simulation
+#' @details This function draws PCA plot for each simulated dataset.
+#' It outputs a pdf file where the number of pages is equal to the number of simulations in `simulations' (input for this function).
+#' Each page presents a PCA plot under one simulation. x-axis of PCA plot is the first component and y-axis is the second component.
 #' This function can be used to validate whether the simulated dataset looks as expected.
 #'
-#' @param simulations A list of simulated datasets. It should be the output of 'simulateDataset' function.
+#' @param simulations A list of simulated datasets. It should be the output of \code{\link{simulateDataset}} function.
 #' @param x.axis.size size of x-axis labeling in PCA Plot. Default is 10.
 #' @param y.axis.size size of y-axis labels. Default is 10.
 #' @param dot.size size of dots in PCA plot. Default is 3.
@@ -13,11 +13,11 @@
 #' @param height height of the saved pdf file. Default is 5.
 #' @param address the name of folder that will store the results. Default folder is the current working directory.
 #' The other assigned folder has to be existed under the current working directory.
-#' An output pdf file is automatically created with the default name of `PCAPlot.pdf`.
+#' An output pdf file is automatically created with the default name of `PCAPlot.pdf'.
 #' The command address can help to specify where to store the file as well as how to modify the beginning of the file name.
 #' If address=FALSE, plot will be not saved as pdf file but showed in window.
 #'
-#' @return PCA plot : X-axis of PCA plot is the first component and y-axis is the second component.
+#' @return PCA plot : x-axis of PCA plot is the first component and y-axis is the second component.
 #' @author Ting Huang, Meena Choi, Olga Vitek
 #' @examples
 #' data(OV_SRM_train)

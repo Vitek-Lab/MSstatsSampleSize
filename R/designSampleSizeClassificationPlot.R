@@ -4,17 +4,17 @@
 #' Visualization for sample size calculation in classification
 #'
 #' @details This function visualizes for sample size calculation in classification.
-#' Mean predictive accuracy and mean protein importance under each sample size is from the input `data`,
+#' Mean predictive accuracy and mean protein importance under each sample size is from the input `data',
 #' which is the output from function \code{\link{designSampleSizeClassification}}.
 #' To illustrate the mean predictive accuracy and protein importance under different sample sizes,
-#' it generates two types of plots in pdf files as output : (1) The predictive accuracy plot, (2) The protein importance plot.
+#' it generates two types of plots in pdf files as output: (1) The predictive accuracy plot, (2) The protein importance plot.
 #' @description To illustrate the mean classification accuracy and protein importance under different sample sizes
 #' through predictive accuracy plot and protein importance plot.
 #'
 #' @param data A list of outputs from function \code{\link{designSampleSizeClassification}}. Each element represents the results under a specific sample size.
 #' The input should include at least two simulation results with different sample sizes.
 #' @param list_samples_per_group A vector includes the different sample sizes simulated. This is required.
-#' The number of simulation in the input `data` should be equal to the length of list_samples_per_group
+#' The number of simulation in the input `data' should be equal to the length of list_samples_per_group
 #' @param num_important_proteins_show The number of proteins to show in protein importance plot.
 #' @param x.axis.size Size of x-axis labeling in predictive accuracy plot and protein importance plot. Default is 10.
 #' @param y.axis.size Size of y-axis labels in predictive accuracy plot and protein importance plot. Default is 10.
@@ -26,15 +26,15 @@
 #' @param ylimDown_predictive_accuracy The lower limit of y-axis for predictive accuracy plot. Default is 0.0. The range should be 0 to 1.
 #' @param address the name of folder that will store the results. Default folder is the current working directory.
 #' The other assigned folder has to be existed under the current working directory.
-#' An output pdf file is automatically created with the default name of `PredictiveAccuracyPlot.pdf` and `ProteinImportancePlot.pdf`.
+#' An output pdf file is automatically created with the default name of `PredictiveAccuracyPlot.pdf' and `ProteinImportancePlot.pdf'.
 #' The command address can help to specify where to store the file as well as how to modify the beginning of the file name.
 #' If address=FALSE, plot will be not saved as pdf file but showed in window.
 #'
 #' @return predictive accuracy plot : the mean predictive accuracy under different sample sizes.
 #' The X-axis represents different sample sizes and y-axis represents the mean predictive accuracy.
 #' @return protein importance plot : Plots will be saved in a pdf file, which includes multiple subplots.
-#' The number of subplots is equal to `list_samples_per_group`.
-#' Each subplot shows the top `num_important_proteins_show` most important proteins under each sample size.
+#' The number of subplots is equal to `list_samples_per_group'.
+#' Each subplot shows the top `num_important_proteins_show' most important proteins under each sample size.
 #' The Y-axis of each subplot is the protein name and X-axis is the mean protein importance under the sample size.
 #' @author Ting Huang, Meena Choi, Olga Vitek.
 #' @examples
@@ -73,8 +73,7 @@
 #'
 #' ## make the plots
 #' designSampleSizeClassificationPlots(data = multiple_sample_sizes,
-#'                                     list_samples_per_group = list_samples_per_group,
-#' )
+#'                                     list_samples_per_group = list_samples_per_group)
 #'
 #' @importFrom reshape2 melt
 #' @import ggplot2

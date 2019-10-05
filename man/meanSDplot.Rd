@@ -10,7 +10,7 @@ meanSDplot(data, x.axis.size = 10, y.axis.size = 10,
 }
 \arguments{
 \item{data}{A list with mean protein abundance matrix and standard deviation matrix.
-It should be the output of `estimateVar` function.}
+It should be the output of \code{\link{estimateVar}} function.}
 
 \item{x.axis.size}{Size of x-axis labeling in Mean-SD Plot. Default is 10.}
 
@@ -28,7 +28,7 @@ It should be the output of `estimateVar` function.}
 
 \item{address}{The name of folder that will store the results. Default folder is the current working directory.
 The other assigned folder has to be existed under the current working directory.
-An output pdf file is automatically created with the default name of `MeanSDPlot.pdf`.
+An output pdf file is automatically created with the default name of `MeanSDPlot.pdf'.
 The command address can help to specify where to store the file as well as how to modify the beginning of the file name.
 If address=FALSE, plot will be not saved as pdf file but showed in window.}
 }
@@ -37,7 +37,7 @@ meanSDplot : the plot for the mean protein abundance (X-axis) vs standard deviat
 }
 \description{
 Draw the plot for the mean protein abundance vs standard deviation in each condition.
-The `lowess` function is used to fit the LOWESS smoother between meann protein abundance and standard deviation.
+The `lowess' function is used to fit the LOWESS smoother between mean protein abundance and standard deviation.
 }
 \examples{
 data(OV_SRM_train)

@@ -1,10 +1,10 @@
 #' Estimate the mean abundance and variance of each protein in each condition.
-#' @details The function fits intensity-based linear model on the input prelimiary data `data`
+#' @details The function fits intensity-based linear model on the input prelimiary data `data'.
 #' This function outputs variance components and mean abundance for each protein.
 #'
 #' @param data Data matrix with protein abundance. Rows are proteins and columns are Biological replicates or samples.
-#' @param annotation Group information for samples in data. `BioReplicate` for sample ID and `Condition` for group information are required.
-#' `BioReplicate` information should be the same with the column of `data`.
+#' @param annotation Group information for samples in data. `BioReplicate' for sample ID and `Condition' for group information are required.
+#' `BioReplicate' information should be the same with the column of `data'.
 #' @return \emph{mu} is the mean abundance matrix of each protein in each phenotype group;
 #' @return \emph{sigma} is the sd matrix of each protein in each phenotype group;
 #' @return \emph{promean} is the mean abundance vector of each protein across all the samples.

@@ -1,42 +1,61 @@
-#' Simulate datasets with the given numbers of biological replicates and proteins based on the preliminary \emph{data}
-#' @details This function simulate datasets with the given numbers of biological replicates and proteins based on the preliminary data (input for this function).
-#' The function fits intensity-based linear model on the input prelimiary data `data` in order to get variance and mean abundance, using `estimateVar` function.
-#' Then it uses variance components and mean abundance to simulate new training data with the given sample size and protein number.
-#' It outputs the number of simulated proteins, a vector with the number of simulated samples in a condition,
-#' the list of simulated training datasets and the (simulated) validation dataset.
-
+#' Simulate datasets with the given number of biological replicates and
+#' proteins based on the preliminary \emph{data}
+#' @details This function simulate datasets with
+#' the given numbers of biological replicates and
+#' proteins based on the preliminary data (input for this function).
+#' The function fits intensity-based linear model on the input prelimiary data \emph{data}
+#'  in order to get variance and mean abundance, using \code{\link{estimateVar}} function.
+#' Then it uses variance components and mean abundance to simulate new training data
+#' with the given sample size and protein number.
+#' It outputs the number of simulated proteins,
+#' a vector with the number of simulated samples in a condition,
+#' the list of simulated training datasets and
+#' the (simulated) validation dataset.
 #'
-#' @param data Protein abundance data matrix. Rows are proteins and columns are biological replicates(samples).
-#' @param annotation Group information for samples in data. `BioReplicate` for sample ID and `Condition` for group information are required.
-#' `BioReplicate` information should match with column names of `data`.
-#' @param num_simulations Number of times to repeat simulation experiments (Number of simulated datasets). Default is 10.
-#' @param expected_FC Expected fold change of proteins. The first option (Default) is `data`, indicating the fold changes are directly estimated from the input `data`.
-#' The second option is a vector with predefined fold changes of listed proteins. The vector names must match with the unique information of Condition in `annotation`.
+#' @param data Protein abundance data matrix.
+#' Rows are proteins and columns are biological replicates (samples).
+#' @param annotation Group information for samples in data.
+#' `BioReplicate' for sample ID and `Condition' for group information are required.
+#' `BioReplicate' information should match with column names of `data'.
+#' @param num_simulations Number of times to repeat simulation experiments
+#' (Number of simulated datasets). Default is 10.
+#' @param expected_FC Expected fold change of proteins.
+#' The first option (Default) is `data',
+#' indicating the fold changes are directly estimated from the input `data'.
+#' The second option is a vector with predefined fold changes of listed proteins.
+#' The vector names must match with the unique information of Condition in `annotation'.
 #' One group must be selected as a baseline and has fold change 1 in the vector.
 #' The user should provide list_diff_proteins, which users expect to have the fold changes greater than 1.
-#' Other proteins that are not available in `list_diff_proteins` will be expected to have fold change = 1
-#' @param list_diff_proteins Vector of proteins names which are set to have fold changes greater than 1 between conditions.
-#' If user selected `expected_FC= `"data `" `, this should be NULL.
+#' Other proteins that are not available in `list_diff_proteins' will be expected to have fold change = 1
+#' @param list_diff_proteins Vector of proteins names
+#' which are set to have fold changes greater than 1 between conditions.
+#' If user selected `expected_FC= "data " ', this should be NULL.
 #' @param select_simulated_proteins The standard to select the simulated proteins among data.
-#' It can be 1) `proportion` of total number of proteins in the input data or 2) `number` to specify the number of proteins.
-#' `proportion` indicates that user should provide the value for `protein_proportion` option.
-#' `number` indicates that user should provide the value for `protein_number` option.
+#' It can be 1) `proportion' of total number of proteins in the input data or
+#' 2) `number' to specify the number of proteins.
+#' `proportion' indicates that user should provide the value for `protein_proportion' option.
+#' `number' indicates that user should provide the value for `protein_number' option.
 #' @param protein_proportion Proportion of total number of proteins in the input data to simulate.
-#' For example, input data has 1,000 proteins and user selects `protein_proportion=0.1`.
+#' For example, input data has 1,000 proteins and user selects `protein_proportion=0.1'.
 #' Proteins are ranked in decreasing order based on their mean abundance across all the samples.
 #' Then, 1,000 * 0.1 = 100 proteins will be selected from the top list to simulate.
 #' Default is 1.0, which meaans that all the proteins will be used.
-#' @param protein_number Number of proteins to simulate. For example, `protein_number=1000`.
-#' Proteins are ranked in decreasing order based on their mean abundance across all the samples and top `protein_number` proteins will be selected to simulate.
+#' @param protein_number Number of proteins to simulate. For example, `protein_number=1000'.
+#' Proteins are ranked in decreasing order based on their mean abundance across all the samples
+#' and top `protein_number' proteins will be selected to simulate.
 #' Default is 1000.
 #' @param samples_per_group Number of samples per group to simulate. Default is 50.
-#' @param simulate_validation Default is FALSE. If TRUE, simulate the validation set; otherwise, the input `data` will be used as the validation set.
-#' @param valid_samples_per_group Number of validation samples per group to simulate. This option works only when user selects `simulate_validation=TRUE`. Default is 50.
+#' @param simulate_validation Default is FALSE. If TRUE, simulate the validation set;
+#' otherwise, the input `data' will be used as the validation set.
+#' @param valid_samples_per_group Number of validation samples per group to simulate.
+#' This option works only when user selects `simulate_validation=TRUE'. Default is 50.
 #'
 #' @return \emph{num_proteins} the number of simulated proteins.
 #' @return \emph{num_samples} a vector with the number of simulated samples in each condition.
-#' @return \emph{simulation_train_Xs} is the list of simulated protein abundance matrices. Each element of the list represents one simulation.
-#' @return \emph{simulation_train_Ys} is the list of simulated condition vectors. Each element of the list represents one simulation.
+#' @return \emph{simulation_train_Xs} is the list of simulated protein abundance matrices.
+#' Each element of the list represents one simulation.
+#' @return \emph{simulation_train_Ys} is the list of simulated condition vectors.
+#' Each element of the list represents one simulation.
 #' @return \emph{valid_X} is the validation protein abundance matrix, which is used for classification.
 #' @return \emph{valid_Y} is the condition vector of validation samples.
 #'

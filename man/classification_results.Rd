@@ -9,17 +9,22 @@
 classification_results
 }
 \description{
-It is the output of \code{\link{designSampleSizeClassification}} function with a list of \code{\link{simulated_datasets}} generated under different sample size.
+It is the output of \code{\link{designSampleSizeClassification}} function
+with a list of \code{\link{simulated_datasets}}
+generated under same protein number and sample size.
 The list should include the required elements as below.
 }
 \details{
 \itemize{
   \item num_proteins : the number of simulated proteins
   \item num_samples : a vector with the number of simulated samples in each condition
-  \item results : the list of classification models trained on each simulated dataset and
-  the predictive accuracy on the validation set predicted by the corresponding classification model.
+  \item results : a list with `num_proteins' elements. Each element has
+  (1) classification models trained on each simulated dataset;
+  (2) the predictive accuracy on the validation set predicted
+  by the corresponding classification model.
   \item mean_predictive_accuracy : the mean predictive accuracy over all the simulated datasets.
-  \item mean_feature_importance : the mean protein importance vector over all the simulated datasets, the length of which is 'num_proteins'.
+  \item mean_feature_importance : the mean protein importance vector over all the simulated datasets,
+  the length of which is `num_proteins'.
 }
 }
 \examples{

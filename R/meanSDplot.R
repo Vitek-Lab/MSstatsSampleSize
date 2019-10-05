@@ -1,9 +1,9 @@
 #' Mean-SD plot
 #' @description Draw the plot for the mean protein abundance vs standard deviation in each condition.
-#' The `lowess` function is used to fit the LOWESS smoother between meann protein abundance and standard deviation.
+#' The `lowess' function is used to fit the LOWESS smoother between mean protein abundance and standard deviation.
 #'
 #' @param data A list with mean protein abundance matrix and standard deviation matrix.
-#' It should be the output of `estimateVar` function.
+#' It should be the output of \code{\link{estimateVar}} function.
 #' @param x.axis.size Size of x-axis labeling in Mean-SD Plot. Default is 10.
 #' @param y.axis.size Size of y-axis labels. Default is 10.
 #' @param smoother_size Size of lowess smoother. Default is 1.
@@ -13,7 +13,7 @@
 #' @param ylimUp The upper limit of y-axis for mean-SD plot. Default is 3.
 #' @param address The name of folder that will store the results. Default folder is the current working directory.
 #' The other assigned folder has to be existed under the current working directory.
-#' An output pdf file is automatically created with the default name of `MeanSDPlot.pdf`.
+#' An output pdf file is automatically created with the default name of `MeanSDPlot.pdf'.
 #' The command address can help to specify where to store the file as well as how to modify the beginning of the file name.
 #' If address=FALSE, plot will be not saved as pdf file but showed in window.
 #'

@@ -8,7 +8,7 @@
 #' It is the input for estimateVar and simulateDataset function,
 #' with annotation file. It should be prepared by users.
 #'
-#' @references Huttenhain R and Choi M et al. (2019).
+#' @references Huttenhain R and Choi M et al. (2019).
 #'  A targeted mass spectrometry strategy for developing proteomic biomarkers:
 #'  a case study of epithelial ovarian cancer.
 #'  Mol Cell Proteomics 18(9):1836-1850.
@@ -30,7 +30,7 @@
 #'   \item Condition : Condition for BioReplicate (ex. Healthy, Cancer, Time0)
 #' }
 #'
-#' @references Huttenhain R and Choi M et al. (2019).
+#' @references Huttenhain R and Choi M et al. (2019).
 #'  A targeted mass spectrometry strategy for developing proteomic biomarkers:
 #'  a case study of epithelial ovarian cancer.
 #'  Mol Cell Proteomics 18(9):1836-1850.
@@ -88,16 +88,21 @@
 
 #' Example of output from designSampleSizeClassification function
 #'
-#' It is the output of \code{\link{designSampleSizeClassification}} function with a list of \code{\link{simulated_datasets}} generated under different sample size.
+#' It is the output of \code{\link{designSampleSizeClassification}} function
+#' with a list of \code{\link{simulated_datasets}}
+#' generated under same protein number and sample size.
 #' The list should include the required elements as below.
 #'
 #' \itemize{
 #'   \item num_proteins : the number of simulated proteins
 #'   \item num_samples : a vector with the number of simulated samples in each condition
-#'   \item results : the list of classification models trained on each simulated dataset and
-#'   the predictive accuracy on the validation set predicted by the corresponding classification model.
+#'   \item results : a list with `num_proteins' elements. Each element has
+#'   (1) classification models trained on each simulated dataset;
+#'   (2) the predictive accuracy on the validation set predicted
+#'   by the corresponding classification model.
 #'   \item mean_predictive_accuracy : the mean predictive accuracy over all the simulated datasets.
-#'   \item mean_feature_importance : the mean protein importance vector over all the simulated datasets, the length of which is 'num_proteins'.
+#'   \item mean_feature_importance : the mean protein importance vector over all the simulated datasets,
+#'   the length of which is `num_proteins'.
 #' }
 #'
 #' @format A list with five elements
