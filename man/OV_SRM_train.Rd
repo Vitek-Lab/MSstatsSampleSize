@@ -24,6 +24,6 @@ head(OV_SRM_train)
 Huttenhain R and Choi M et al. (2019).
  A targeted mass spectrometry strategy for developing proteomic biomarkers:
  a case study of epithelial ovarian cancer.
-Molecular & Cellular Proteomics 18(9):1836-1850. doi:10.1074/mcp.RA118.001221.
+Molecular \& Cellular Proteomics 18(9):1836-1850. doi:10.1074/mcp.RA118.001221.
 }
 \keyword{datasets}
