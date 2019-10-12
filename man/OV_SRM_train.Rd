@@ -4,15 +4,15 @@
 \name{OV_SRM_train}
 \alias{OV_SRM_train}
 \title{The training set from a study for subjects with ovarian cancer}
-\format{A numeric matrix with 68 rows and 260 columns.}
+\format{A numeric matrix with 67 rows and 173 columns.}
 \usage{
 OV_SRM_train
 }
 \description{
 It is a protein abundance data matrix,
 where rows are proteins and columns are samples.
-It includes log2 protein intensities for 68 proteins
-among 260 biological subjects
+It includes log2 protein intensities for 67 proteins
+among 173 biological subjects from control and cancer groups.
 It is the input for estimateVar and simulateDataset function,
 with annotation file. It should be prepared by users.
 }

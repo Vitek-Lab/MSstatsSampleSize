@@ -5,8 +5,8 @@
 \title{Mean-SD plot}
 \usage{
 meanSDplot(data, x.axis.size = 10, y.axis.size = 10,
-  smoother_size = 1, width = 6, xlimUp = 30, ylimUp = 3,
-  height = 5, address = "")
+  smoother_size = 1, xlimUp = 30, ylimUp = 3, height = 4,
+  width = 4, address = "")
 }
 \arguments{
 \item{data}{A list with mean protein abundance matrix and standard deviation matrix.
@@ -18,13 +18,13 @@ It should be the output of \code{\link{estimateVar}} function.}
 
 \item{smoother_size}{Size of lowess smoother. Default is 1.}
 
-\item{width}{Width of the saved pdf file. Default is 4.}
-
 \item{xlimUp}{The upper limit of x-axis for mean-SD plot. Default is 30.}
 
 \item{ylimUp}{The upper limit of y-axis for mean-SD plot. Default is 3.}
 
 \item{height}{Height of the saved pdf file. Default is 4.}
+
+\item{width}{Width of the saved pdf file. Default is 4.}
 
 \item{address}{The name of folder that will store the results. Default folder is the current working directory.
 The other assigned folder has to be existed under the current working directory.
@@ -33,7 +33,7 @@ The command address can help to specify where to store the file as well as how t
 If address=FALSE, plot will be not saved as pdf file but showed in window.}
 }
 \value{
-meanSDplot : the plot for the mean protein abundance (X-axis) vs standard deviation (Y-axis) in each condition.
+\emph{meanSDplot} is the plot for the mean protein abundance (X-axis) vs standard deviation (Y-axis) in each condition.
 }
 \description{
 Draw the plot for the mean protein abundance vs standard deviation in each condition.
@@ -42,7 +42,10 @@ The `lowess' function is used to fit the LOWESS smoother between mean protein ab
 \examples{
 data(OV_SRM_train)
 data(OV_SRM_train_annotation)
-variance_estimation <- estimateVar(OV_SRM_train, OV_SRM_train_annotation)
+
+variance_estimation <- estimateVar(data = OV_SRM_train,
+                                   annotation = OV_SRM_train_annotation)
+
 meanSDplot(variance_estimation)
 
 }

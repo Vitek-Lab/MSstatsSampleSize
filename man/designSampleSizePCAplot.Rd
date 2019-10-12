@@ -4,12 +4,18 @@
 \alias{designSampleSizePCAplot}
 \title{PCA plot for each simulation}
 \usage{
-designSampleSizePCAplot(simulations, x.axis.size = 10,
-  y.axis.size = 10, dot.size = 3, legend.size = 7, width = 6,
-  height = 5, address = "")
+designSampleSizePCAplot(simulations, which.PCA = "all",
+  x.axis.size = 10, y.axis.size = 10, dot.size = 3,
+  legend.size = 7, width = 6, height = 5, address = "")
 }
 \arguments{
 \item{simulations}{A list of simulated datasets. It should be the output of \code{\link{simulateDataset}} function.}
+
+\item{which.PCA}{Select one PCA plot to show. It can be "all", "allonly", or "simulationX".
+X should be index of simulation, such as "simulation1" or "simulation5".
+Default is "all", which generates all the plots.
+"allonly" generates the PCA plot for the whole input dataset.
+"simulationX" generates the PCA plot for a specific simulated dataset (given by index).}
 
 \item{x.axis.size}{size of x-axis labeling in PCA Plot. Default is 10.}
 
@@ -36,10 +42,13 @@ PCA plot : x-axis of PCA plot is the first component and y-axis is the second co
 PCA plot for each simulation
 }
 \details{
-This function draws PCA plot for each simulated dataset.
-It outputs a pdf file where the number of pages is equal to the number of simulations in `simulations' (input for this function).
-Each page presents a PCA plot under one simulation. x-axis of PCA plot is the first component and y-axis is the second component.
-This function can be used to validate whether the simulated dataset looks as expected.
+This function draws PCA plot for the whole input dataset and each simulated dataset
+in `simulations' (input for this function).
+It outputs the number of simulations plus 1 of PCA plots.
+The first page shows a PCA plot for the input preliminary dataset.
+Each of the following pages shows a PCA plot under one simulation.
+x-axis of PCA plot is the first component and y-axis is the second component.
+This function can be used to validate whether the simulated dataset looks consistent with the input dataset.
 }
 \examples{
 data(OV_SRM_train)

@@ -7,22 +7,25 @@
 #' @param x.axis.size Size of x-axis labeling in Mean-SD Plot. Default is 10.
 #' @param y.axis.size Size of y-axis labels. Default is 10.
 #' @param smoother_size Size of lowess smoother. Default is 1.
-#' @param width Width of the saved pdf file. Default is 4.
-#' @param height Height of the saved pdf file. Default is 4.
 #' @param xlimUp The upper limit of x-axis for mean-SD plot. Default is 30.
 #' @param ylimUp The upper limit of y-axis for mean-SD plot. Default is 3.
+#' @param width Width of the saved pdf file. Default is 4.
+#' @param height Height of the saved pdf file. Default is 4.
 #' @param address The name of folder that will store the results. Default folder is the current working directory.
 #' The other assigned folder has to be existed under the current working directory.
 #' An output pdf file is automatically created with the default name of `MeanSDPlot.pdf'.
 #' The command address can help to specify where to store the file as well as how to modify the beginning of the file name.
 #' If address=FALSE, plot will be not saved as pdf file but showed in window.
 #'
-#' @return meanSDplot : the plot for the mean protein abundance (X-axis) vs standard deviation (Y-axis) in each condition.
+#' @return \emph{meanSDplot} is the plot for the mean protein abundance (X-axis) vs standard deviation (Y-axis) in each condition.
 #' @author Ting Huang, Meena Choi, Olga Vitek
 #' @examples
 #' data(OV_SRM_train)
 #' data(OV_SRM_train_annotation)
-#' variance_estimation <- estimateVar(OV_SRM_train, OV_SRM_train_annotation)
+#'
+#' variance_estimation <- estimateVar(data = OV_SRM_train,
+#'                                    annotation = OV_SRM_train_annotation)
+#'
 #' meanSDplot(variance_estimation)
 #'
 #' @import ggplot2
@@ -35,49 +38,21 @@ meanSDplot <- function(data,
                        x.axis.size = 10,
                        y.axis.size = 10,
                        smoother_size = 1,
-                       width = 6,
                        xlimUp = 30,
                        ylimUp = 3,
-                       height = 5,
+                       height = 4,
+                       width = 4,
                        address = "") {
 
     ###############################################################################
     ## log file
     ## save process output in each step
-
-    allfiles <- list.files()
-
-    filenaming <- "MSstatsSampleSize-ProgressReport"
-
-    if (length(grep(filenaming,allfiles)) == 0) {
-
-        finalfile <- "MSstatsSampleSize-ProgressReport.log"
-
-        session <- sessionInfo()
-        sink("sessionInfo.txt")
-        print(session)
-        sink()
-
-        processout <- as.matrix(read.table("sessionInfo.txt", header=TRUE, sep="\t"))
-
-    } else {
-
-        num <- 0
-        finalfile <- "MSstatsSampleSize-ProgressReport.log"
-
-        while (is.element(finalfile, allfiles)) {
-            num <- num + 1
-            lastfilename <- finalfile ## in order to rea
-            finalfile <- paste0(paste(filenaming, num, sep="-"), ".log")
-        }
-
-        finalfile <- lastfilename
-        processout <- as.matrix(read.table(finalfile, header=TRUE, sep="\t"))
-    }
+    loginfo <- .logGeneration()
+    finalfile <- loginfo$finalfile
+    processout <- loginfo$processout
 
     processout <- rbind(processout,
                         as.matrix(c(" ", " ", "MSstatsSampleSize - meanSDplot", " "), ncol=1))
-    write.table(processout, file=finalfile, row.names=FALSE)
 
 
     message("Drew the Mean-SD plot for simulation!")

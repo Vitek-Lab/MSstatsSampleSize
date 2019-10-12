@@ -4,7 +4,7 @@
 \name{simulated_datasets}
 \alias{simulated_datasets}
 \title{Example of output from simulateDataset function}
-\format{A list with six elements}
+\format{A list with eight elements}
 \usage{
 simulated_datasets
 }
@@ -19,6 +19,8 @@ The list should include the required elements as below.
   \item num_samples : a vector with the number of simulated samples in each condition
   \item simulation_train_Xs : the list of simulated protein abundance matrices. Each element of the list represents one simulation
   \item simulation_train_Ys : the list of simulated condition vectors(simulation_train_Xs). Each element of the list represents one simulation
+  \item input_X : the input protein abundance matrix `OV_SRM_train'.
+  \item input_Y : is the condition vector for the input `OV_SRM_train'.
   \item valid_X: the validation protein abundance matrix, which is used for classification
   \item valid_Y : the condition vector of validation samples (valid_X)
 }

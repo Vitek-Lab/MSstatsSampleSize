@@ -25,6 +25,10 @@ The list should include the required elements as below.
   \item mean_predictive_accuracy : the mean predictive accuracy over all the simulated datasets.
   \item mean_feature_importance : the mean protein importance vector over all the simulated datasets,
   the length of which is `num_proteins'.
+  \item predictive_accuracy : a vector of predictive accuracy on each simulated dataset.
+  \item feature_importance : a matrix of feature importance,
+  where rows are proteins and columns are simulated datasets.
+  the length of which is `num_proteins'.
 }
 }
 \examples{

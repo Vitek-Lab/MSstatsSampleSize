@@ -2,10 +2,10 @@
 % Please edit documentation in R/designSampleSizeClassification.R
 \name{designSampleSizeClassification}
 \alias{designSampleSizeClassification}
-\title{Estimate the mean predictive accuracy and protein importance over all the simulated datasets}
+\title{Estimate the mean predictive accuracy and mean protein importance over all the simulated datasets}
 \usage{
 designSampleSizeClassification(simulations, classifier = "rf",
-  threads = NULL)
+  parallel = TRUE)
 }
 \arguments{
 \item{simulations}{A list of simulated datasets It should be the name of the output of \code{\link{simulateDataset}} function.}
@@ -14,45 +14,49 @@ designSampleSizeClassification(simulations, classifier = "rf",
 The options are 1) rf (random forest calssifier, default option). 2) nnet (neural network),
 3) svmLinear (support vector machines with linear kernel), 4) logreg (logistic regression), and 5) naive_bayes (naive_bayes).}
 
-\item{threads}{A user needs to specify the number of threads (clusters) for computation. Default is NULL. User can specify it. For example, `threads=4'.}
+\item{parallel}{Default is FALSE. If TRUE, parallel computation is performed.}
 }
 \value{
-\emph{num_proteins} the number of simulated proteins.
+\emph{num_proteins} is the number of simulated proteins.
+ It should be the same as one of the output from \emph{simulateDataset}, called \emph{num_proteins}
 
-\emph{num_samples} a vector with the number of simulated samples in each condition.
+\emph{num_samples} is a vector with the number of simulated samples in each condition.
+ It should be the same as one of the output from \emph{simulateDataset}, called \emph{num_samples}
 
-\emph{results} the list of classification models trained on each simulated dataset and
-the predictive accuracy on the validation set predicted by the corresponding classification model.
-
-\emph{mean_predictive_accuracy} the mean predictive accuracy over all the simulated datasets,
+\emph{mean_predictive_accuracy} is the mean predictive accuracy over all the simulated datasets,
 which have same `num_proteins' and `num_samples'.
 
-\emph{mean_feature_importance} the mean protein importance vector over all the simulated datasets,
+\emph{mean_feature_importance} is the mean protein importance vector over all the simulated datasets,
 the length of which is `num_proteins'.
+
+\emph{predictive_accuracy} is a vector of predictive accuracy on each simulated dataset.
+
+\emph{feature_importance} is a matrix of feature importance, where rows are proteins and columns are simulated datasets.
+
+\emph{results} is the list of classification models trained on each simulated dataset and
+the predictive accuracy on the validation set predicted by the corresponding classification model.
 }
 \description{
-Estimate the mean predictive accuracy and protein importance over all the simulated datasets
+Estimate the mean predictive accuracy and mean protein importance over all the simulated datasets
 }
 \details{
-This function fits the statistical model for classification,
-in order to classify the subjects in the simulated training datasets (the output of \code{\link{simulateDataset}}).
-Then the fitted model is validated by the (simulated) validation set (the output of \code{\link{simulateDataset}}).
+This function fits the classification model,
+in order to classify the subjects in each simulated training dataset (the output of \code{\link{simulateDataset}}).
+Then the fitted model is validated on the (simulated) validation set (the output of \code{\link{simulateDataset}}).
 Two performance are reported :
 
 (1) the mean predictive accuracy : The function trains classifier on each simulated training dataset and
 reports the predictive accuracy of the trained classifier on the validation data (output of \code{\link{simulateDataset}} function).
 Then these predictive accuracies are averaged over all the simulation.
 
-(2) the protein importance : It represents the importance of a protein in separating different groups.
-It is estimated using function `varImp' from package caret. Please refer to the help file of `varImp' about
-how each classifier calculates the protein importance.
+(2) the mean protein importance : It represents the importance of a protein in separating different groups.
+It is estimated on each simulated training dataset using function `varImp' from package caret. Please refer to the help file of `varImp' about
+how each classifier calculates the protein importance. Then these importance values for each protein are averaged over all the simulation.
 
-The sample size per condition, which generates the largest predictive accuracy, is calculated,
-while varying the number of biological replicates to simulate.
-Also, the proteins, which can classify the conditions best, are reported.
-The reported sample size per condition can be used to design future experiments.
-The list of classification models trained on each simulated dataset and the predictive accuracy
-on the validation set predicted by the corresponding classification model is also reported.
+The list of classification models trained on each simulated dataset, the predictive accuracy
+on the validation set predicted by the corresponding classification model and
+the importance value for all the proteins estimated by the corresponding classification model
+are also reported.
 }
 \examples{
 data(OV_SRM_train)
@@ -76,7 +80,9 @@ simulated_datasets <- simulateDataset(data = OV_SRM_train,
                                       simulate_valid = FALSE,
                                       valid_samples_per_group = 50)
 
-classification_results <- designSampleSizeClassification(simulations = simulated_datasets)
+# run classification on simulated datasets with parallel computation
+classification_results <- designSampleSizeClassification(simulations = simulated_datasets,
+                                                         parallel = TRUE)
 
 classification_results$num_proteins
 

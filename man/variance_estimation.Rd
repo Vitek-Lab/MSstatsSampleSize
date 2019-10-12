@@ -4,7 +4,7 @@
 \name{variance_estimation}
 \alias{variance_estimation}
 \title{Example of output from estimateVar function}
-\format{A list with four elements}
+\format{A list with five elements}
 \usage{
 variance_estimation
 }
@@ -15,6 +15,7 @@ The list should include the required elements as below.
 }
 \details{
 \itemize{
+  \item model : the list of linear models trained for each protein.
   \item mu : the mean abundance matrix of each protein in each condition
   \item sigma : the standard deviation matrix of each protein in each condition
   \item promean: the mean abundance vector of each protein across all the samples.

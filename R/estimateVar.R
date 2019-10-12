@@ -1,12 +1,15 @@
 #' Estimate the mean abundance and variance of each protein in each condition.
-#' @details The function fits intensity-based linear model on the input prelimiary data `data'.
+#' @details The function fits intensity-based linear model on the input data `data'.
 #' This function outputs variance components and mean abundance for each protein.
 #'
-#' @param data Data matrix with protein abundance. Rows are proteins and columns are Biological replicates or samples.
-#' @param annotation Group information for samples in data. `BioReplicate' for sample ID and `Condition' for group information are required.
+#' @param data Data matrix with protein abundance.
+#' Rows are proteins and columns are Biological replicates or samples.
+#' @param annotation Group information for samples in data.
+#' `BioReplicate' for sample ID and `Condition' for group information are required.
 #' `BioReplicate' information should be the same with the column of `data'.
-#' @return \emph{mu} is the mean abundance matrix of each protein in each phenotype group;
-#' @return \emph{sigma} is the sd matrix of each protein in each phenotype group;
+#' @return \emph{model} is the list of linear models trained for each protein.
+#' @return \emph{mu} is the mean abundance matrix of each protein in each phenotype group.
+#' @return \emph{sigma} is the sd matrix of each protein in each phenotype group.
 #' @return \emph{promean} is the mean abundance vector of each protein across all the samples.
 #' @return \emph{protein} is proteins, correpsonding to the rows in \emph{mu} and \emph{sigma} or the element of \emph{promean}.
 #'
@@ -60,7 +63,6 @@ estimateVar <- function(data,
 
     processout <- rbind(processout, as.matrix(c(" "," ","MSstatsSampleSize - estimateVar function"," "), ncol=1))
 
-
     ###############################################################################
     ## input checking
     if(anyDuplicated(colnames(data)) != 0){
@@ -68,7 +70,7 @@ estimateVar <- function(data,
                                           There are duplicated 'BioReplicate'."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
-        stop("ERROR: Please check the column names of 'data'.
+        stop("Please check the column names of 'data'.
              There are duplicated 'BioReplicate'.  \n")
 
     }
@@ -79,7 +81,7 @@ estimateVar <- function(data,
                                           'BioReplicate' must match with the column names of 'data'."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
-        stop("ERROR: Please check the annotation file.
+        stop("Please check the annotation file.
              'BioReplicate' must match with the column names of 'data'.  \n")
 
     }
@@ -88,7 +90,7 @@ estimateVar <- function(data,
         processout <- rbind(processout, c("ERROR: Need at least two conditions to do simulation."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
-        stop("ERROR: Need at least two conditions to do simulation.  \n")
+        stop("Need at least two conditions to do simulation.  \n")
 
     }
 
@@ -97,23 +99,22 @@ estimateVar <- function(data,
         processout <- rbind(processout, c("ERROR: NA not permitted in 'BioReplicate' or 'Condition' of annotaion."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
-        stop("ERROR: NA not permitted in 'BioReplicate' or 'Condition' of annotaion.  \n")
+        stop("NA not permitted in 'BioReplicate' or 'Condition' of annotaion.  \n")
     }
 
     ## match between data and annotation
     data <- data[, annotation$BioReplicate]
-    group <- annotation$Condition
+    group <- as.factor(as.character(annotation$Condition))
 
     if (nrow(data) == 0) {
         processout <- rbind(processout, c("ERROR: Please check the column names of data and BioReplicate in annotation."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
-        stop("ERROR: Please check the column names of data and BioReplicate in annotation. \n")
+        stop("Please check the column names of data and BioReplicate in annotation. \n")
     }
 
     processout <- rbind(processout, c(paste0("Summary : number of proteins in the input data = ", nrow(data) )))
     processout <- rbind(processout, c(paste0("Summary : number of samples in the input data = ", ncol(data) )))
-
     write.table(processout, file=finalfile, row.names=FALSE)
 
     ###############################################################################
@@ -122,7 +123,7 @@ estimateVar <- function(data,
     message(" Preparing variance analysis...")
 
     ## unique groups
-    groups <- unique(group)
+    groups <- as.character(unique(group))
     ngroup <- length(groups)
     nproteins <- nrow(data)
 
@@ -130,8 +131,9 @@ estimateVar <- function(data,
     GroupMean <- matrix(rep(NA, nproteins * ngroup), ncol = ngroup)
     SampleMean <- NULL # mean across all the samples
     Proteins <- NULL # record the proteins to simulate
-
-    for (i in 1:nrow(data)) {
+    Models <- list()
+    count = 0
+    for (i in seq_len(nrow(data))) {
         sub<- data.frame(ABUNDANCE = unname(unlist(data[i, ])), GROUP = factor(group), row.names = NULL)
         sub <- sub[!is.na(sub$ABUNDANCE), ]
 
@@ -141,24 +143,29 @@ estimateVar <- function(data,
             abun <- coef(df.full)
             if(length(abun) == ngroup){
 
+                count <- count + 1
                 # total variance in protein abundance
                 var <- anova(df.full)['Residuals', 'Mean Sq']
                 # estimate mean abundance of each group
-                abun <- coef(df.full)
                 abun[-1] <- abun[1] + abun[-1]
                 names(abun) <- gsub("GROUP", "", names(abun))
                 names(abun)[1] <- setdiff(as.character(groups), names(abun))
                 abun <- abun[groups]
 
                 # save group mean, group variance
-                GroupVar[i, ] <- rep(sqrt(var), times=length(abun))
-                GroupMean[i, ] <- abun
+                Models[[rownames(data)[i]]] <- df.full
+                GroupVar[count, ] <- rep(sqrt(var), times=length(abun))
+                GroupMean[count, ] <- abun
                 SampleMean <- c(SampleMean, mean(sub$ABUNDANCE, na.rm = TRUE))
                 Proteins <- c(Proteins, rownames(data)[i])
             }
         }
     }
 
+    # only keep the rows with results
+    GroupMean <- GroupMean[1:count, ]
+    GroupMean <- GroupMean[1:count, ]
+    # assign the row and column names
     rownames(GroupVar) <- Proteins
     colnames(GroupVar) <- groups
     rownames(GroupMean) <- Proteins
@@ -169,7 +176,8 @@ estimateVar <- function(data,
     write.table(processout, file=finalfile, row.names=FALSE)
     message(" Variance analysis completed.")
 
-    return(list(protein = Proteins,
+    return(list(model = Models,
+                protein = Proteins,
                 promean = SampleMean,
                 mu = GroupMean,
                 sigma = GroupVar))

@@ -3,7 +3,7 @@
 \name{simulateDataset}
 \alias{simulateDataset}
 \title{Simulate datasets with the given number of biological replicates and
-proteins based on the preliminary \emph{data}}
+proteins based on the input \emph{data}}
 \usage{
 simulateDataset(data, annotation, num_simulations = 10,
   expected_FC = "data", list_diff_proteins = NULL,
@@ -23,7 +23,7 @@ Rows are proteins and columns are biological replicates (samples).}
 (Number of simulated datasets). Default is 10.}
 
 \item{expected_FC}{Expected fold change of proteins.
-The first option (Default) is `data',
+The first option (Default) is "data",
 indicating the fold changes are directly estimated from the input `data'.
 The second option is a vector with predefined fold changes of listed proteins.
 The vector names must match with the unique information of Condition in `annotation'.
@@ -33,13 +33,13 @@ Other proteins that are not available in `list_diff_proteins' will be expected t
 
 \item{list_diff_proteins}{Vector of proteins names
 which are set to have fold changes greater than 1 between conditions.
-If user selected `expected_FC= "data " ', this should be NULL.}
+If user selected `expected_FC= "data" ', this should be NULL.}
 
 \item{select_simulated_proteins}{The standard to select the simulated proteins among data.
-It can be 1) `proportion' of total number of proteins in the input data or
-2) `number' to specify the number of proteins.
-`proportion' indicates that user should provide the value for `protein_proportion' option.
-`number' indicates that user should provide the value for `protein_number' option.}
+It can be 1) "proportion" of total number of proteins in the input data or
+2) "number" to specify the number of proteins.
+"proportion" indicates that user should provide the value for `protein_proportion' option.
+"number" indicates that user should provide the value for `protein_number' option.}
 
 \item{protein_proportion}{Proportion of total number of proteins in the input data to simulate.
 For example, input data has 1,000 proteins and user selects `protein_proportion=0.1'.
@@ -61,9 +61,15 @@ otherwise, the input `data' will be used as the validation set.}
 This option works only when user selects `simulate_validation=TRUE'. Default is 50.}
 }
 \value{
-\emph{num_proteins} the number of simulated proteins.
+\emph{num_proteins} is the number of simulated proteins.
+ It should be set up by parameters, named \emph{protein_proportion} or \emph{protein_number}
 
-\emph{num_samples} a vector with the number of simulated samples in each condition.
+\emph{num_samples} is a vector with the number of simulated samples in each condition.
+It should be same as the parameter, \emph{samples_per_group}
+
+\emph{input_X} is the input protein abundance matrix `data'.
+
+\emph{input_Y} is the condition vector for the input `data.
 
 \emph{simulation_train_Xs} is the list of simulated protein abundance matrices.
 Each element of the list represents one simulation.
@@ -77,19 +83,20 @@ Each element of the list represents one simulation.
 }
 \description{
 Simulate datasets with the given number of biological replicates and
-proteins based on the preliminary \emph{data}
+proteins based on the input \emph{data}
 }
 \details{
 This function simulate datasets with
 the given numbers of biological replicates and
-proteins based on the preliminary data (input for this function).
-The function fits intensity-based linear model on the input prelimiary data \emph{data}
- in order to get variance and mean abundance, using \code{\link{estimateVar}} function.
+proteins based on the input dataset (input for this function).
+The function fits intensity-based linear model on the input \emph{data}
+in order to get variance and mean abundance, using \code{\link{estimateVar}} function.
 Then it uses variance components and mean abundance to simulate new training data
 with the given sample size and protein number.
 It outputs the number of simulated proteins,
 a vector with the number of simulated samples in a condition,
-the list of simulated training datasets and
+the list of simulated training datasets,
+the input preliminary dataset and
 the (simulated) validation dataset.
 }
 \examples{

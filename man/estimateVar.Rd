@@ -7,15 +7,19 @@
 estimateVar(data, annotation)
 }
 \arguments{
-\item{data}{Data matrix with protein abundance. Rows are proteins and columns are Biological replicates or samples.}
+\item{data}{Data matrix with protein abundance.
+Rows are proteins and columns are Biological replicates or samples.}
 
-\item{annotation}{Group information for samples in data. `BioReplicate' for sample ID and `Condition' for group information are required.
+\item{annotation}{Group information for samples in data.
+`BioReplicate' for sample ID and `Condition' for group information are required.
 `BioReplicate' information should be the same with the column of `data'.}
 }
 \value{
-\emph{mu} is the mean abundance matrix of each protein in each phenotype group;
+\emph{model} is the list of linear models trained for each protein.
 
-\emph{sigma} is the sd matrix of each protein in each phenotype group;
+\emph{mu} is the mean abundance matrix of each protein in each phenotype group.
+
+\emph{sigma} is the sd matrix of each protein in each phenotype group.
 
 \emph{promean} is the mean abundance vector of each protein across all the samples.
 
@@ -25,7 +29,7 @@ estimateVar(data, annotation)
 Estimate the mean abundance and variance of each protein in each condition.
 }
 \details{
-The function fits intensity-based linear model on the input prelimiary data `data'.
+The function fits intensity-based linear model on the input data `data'.
 This function outputs variance components and mean abundance for each protein.
 }
 \examples{

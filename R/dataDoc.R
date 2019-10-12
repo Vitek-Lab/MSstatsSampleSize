@@ -3,8 +3,8 @@
 #'
 #' It is a protein abundance data matrix,
 #' where rows are proteins and columns are samples.
-#' It includes log2 protein intensities for 68 proteins
-#' among 260 biological subjects
+#' It includes log2 protein intensities for 67 proteins
+#' among 173 biological subjects from control and cancer groups.
 #' It is the input for estimateVar and simulateDataset function,
 #' with annotation file. It should be prepared by users.
 #'
@@ -13,7 +13,7 @@
 #'  a case study of epithelial ovarian cancer.
 #'  Mol Cell Proteomics 18(9):1836-1850.
 #'  doi:10.1074/mcp.RA118.001221.
-#' @format A numeric matrix with 68 rows and 260 columns.
+#' @format A numeric matrix with 67 rows and 173 columns.
 #' @examples
 #' head(OV_SRM_train)
 #'
@@ -35,7 +35,7 @@
 #'  a case study of epithelial ovarian cancer.
 #'  Mol Cell Proteomics 18(9):1836-1850.
 #'  doi:10.1074/mcp.RA118.001221.
-#' @format A data frame with 260 rows and 2 variables.
+#' @format A data frame with 173 rows and 2 variables.
 #' @examples
 #' head(OV_SRM_train_annotation)
 #'
@@ -48,13 +48,17 @@
 #' The list should include the required elements as below.
 #'
 #' \itemize{
+#'   \item model : the list of linear models trained for each protein.
 #'   \item mu : the mean abundance matrix of each protein in each condition
-#'   \item sigma : the standard deviation matrix of each protein in each condition
-#'   \item promean: the mean abundance vector of each protein across all the samples.
-#'   \item protein : proteins, correpsonding to the rows in \emph{mu} and \emph{sigma} or the element of \emph{promean}
+#'   \item sigma : the standard deviation matrix of each protein
+#'   in each condition
+#'   \item promean: the mean abundance vector of each protein
+#'   across all the samples.
+#'   \item protein : proteins, correpsonding to the rows
+#'   in \emph{mu} and \emph{sigma} or the element of \emph{promean}
 #' }
 #'
-#' @format A list with four elements
+#' @format A list with five elements
 #' @examples
 #' head(variance_estimation$mu)
 #' head(variance_estimation$sigma)
@@ -70,14 +74,19 @@
 #'
 #' \itemize{
 #'   \item num_proteins : the number of simulated proteins
-#'   \item num_samples : a vector with the number of simulated samples in each condition
-#'   \item simulation_train_Xs : the list of simulated protein abundance matrices. Each element of the list represents one simulation
-#'   \item simulation_train_Ys : the list of simulated condition vectors(simulation_train_Xs). Each element of the list represents one simulation
+#'   \item num_samples : a vector with the number of simulated samples
+#'   in each condition
+#'   \item simulation_train_Xs : the list of simulated protein abundance matrices.
+#'   Each element of the list represents one simulation
+#'   \item simulation_train_Ys : the list of simulated condition vectors(simulation_train_Xs).
+#'   Each element of the list represents one simulation
+#'   \item input_X : the input protein abundance matrix `OV_SRM_train'.
+#'   \item input_Y : is the condition vector for the input `OV_SRM_train'.
 #'   \item valid_X: the validation protein abundance matrix, which is used for classification
 #'   \item valid_Y : the condition vector of validation samples (valid_X)
 #' }
 #'
-#' @format A list with six elements
+#' @format A list with eight elements
 #' @examples
 #' simulated_datasets$num_proteins
 #' simulated_datasets$num_samples
@@ -102,6 +111,10 @@
 #'   by the corresponding classification model.
 #'   \item mean_predictive_accuracy : the mean predictive accuracy over all the simulated datasets.
 #'   \item mean_feature_importance : the mean protein importance vector over all the simulated datasets,
+#'   the length of which is `num_proteins'.
+#'   \item predictive_accuracy : a vector of predictive accuracy on each simulated dataset.
+#'   \item feature_importance : a matrix of feature importance,
+#'   where rows are proteins and columns are simulated datasets.
 #'   the length of which is `num_proteins'.
 #' }
 #'
