@@ -19,7 +19,6 @@ It reports the mean predictive accuracy of the classifier and mean protein impor
   \item \code{\link{designSampleSizeClassification}} : estimate the mean predictive accuracy and protein importance over all the simulated datasets.
   \item \code{\link{designSampleSizePCAplot}} : make PCA plots with the first two components for each simulated dataset.
   \item \code{\link{designSampleSizeClassificationPlots}} : visualization for sample size calculation in classification.
-  \item \code{\link{designSampleSizeHypothesisTestingPlot}} : visualization for sample size calculation in hypothesis testing.
 }
 }
 

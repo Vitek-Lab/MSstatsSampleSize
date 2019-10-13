@@ -1,7 +1,7 @@
 Package: MSstatsSampleSize
 Type: Package
 Title: Simulation tool for optimal design of high-dimensional MS-based proteomics experiment
-Version: 0.99.7
+Version: 0.99.8
 Date: 2019-10-13
 Authors@R: c(
     person("Ting","Huang", , "thuang0703@gmail.com", c("aut", "cre")), 
@@ -10,7 +10,7 @@ Authors@R: c(
 Description: The packages estimates the variance in the input protein abundance data 
     and simulates data with predefined number of biological replicates based on the variance estimation. 
     It reports the mean predictive accuracy of the classifier and mean protein importance over multiple iterations of the simulation. 
-Imports: ggplot2, BiocParallel, caret, gridExtra, reshape2, stats, utils, grDevices, graphics, MSstats
+Imports: ggplot2, BiocParallel, caret, gridExtra, reshape2, stats, utils, grDevices, graphics
 Suggests: BiocStyle, knitr, rmarkdown, testthat
 VignetteBuilder: knitr
 biocViews: MassSpectrometry, Proteomics, Software, DifferentialExpression, Classification, PrincipalComponent, 
