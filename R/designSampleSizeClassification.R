@@ -59,9 +59,9 @@
 #'                                       simulate_valid = FALSE,
 #'                                       valid_samples_per_group = 50)
 #'
-#' # run classification on simulated datasets with parallel computation
+#' # run classification on simulated datasets without parallel computation
 #' classification_results <- designSampleSizeClassification(simulations = simulated_datasets,
-#'                                                          parallel = TRUE)
+#'                                                          parallel = FALSE)
 #'
 #  # the number of simulated proteins
 #' classification_results$num_proteins

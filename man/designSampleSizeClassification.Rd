@@ -80,9 +80,9 @@ simulated_datasets <- simulateDataset(data = OV_SRM_train,
                                       simulate_valid = FALSE,
                                       valid_samples_per_group = 50)
 
-# run classification on simulated datasets with parallel computation
+# run classification on simulated datasets without parallel computation
 classification_results <- designSampleSizeClassification(simulations = simulated_datasets,
-                                                         parallel = TRUE)
+                                                         parallel = FALSE)
 
 classification_results$num_proteins
 
