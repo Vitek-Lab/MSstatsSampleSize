@@ -23,7 +23,7 @@
 #' @param data A list of outputs from function \code{\link{designSampleSizeClassification}}. Each element represents the results under a specific sample size.
 #' The input should include at least two simulation results with different sample sizes.
 #' @param list_samples_per_group A vector includes the different sample sizes simulated. This is required.
-#' The number of simulation in the input `data' should be equal to the length of list_samples_per_group
+#' The number of simulated sample sizes in the input `data' should be equal to the length of list_samples_per_group
 #' @param num_important_proteins_show The number of proteins to show in protein importance plot.
 #' @param protein_importance_plot TRUE(default) draws protein importance plot.
 #' @param predictive_accuracy_plot TRUE(default) draws predictive accuracy plot.
@@ -119,10 +119,10 @@ designSampleSizeClassificationPlots <- function(data,
                         as.matrix(c(" ", " ", "MSstatsSampleSize - designSampleSizeClassificationPlot", " "), ncol=1))
 
     ################################################################################
-    ## need to check at least two simulations
-    num_simulation <- length(data)
+    ## need to simulate at least two different sample sizes
+    num_sample_size <- length(data)
 
-    if ( num_simulation < 2 ) {
+    if ( num_sample_size < 2 ) {
 
         processout <- rbind(processout,
                             "The required input should include at least two simulation results with different sample sizes from simulateDataset and designSampleSizeClassifications. - stop")
@@ -132,7 +132,7 @@ designSampleSizeClassificationPlots <- function(data,
     }
 
     ## the number of simulation in data should be equal to the number of list_samples_per_group
-    if ( num_simulation != length(list_samples_per_group) ) {
+    if ( num_sample_size != length(list_samples_per_group) ) {
 
         processout <- rbind(processout,
                             "The number of simulation in the input of designSampleSizeClassificationPlot should be equal to the number of list_samples_per_group. - stop")
@@ -154,11 +154,11 @@ designSampleSizeClassificationPlots <- function(data,
 
     ## if there is list protein numbers. we need rows and columns.
 
-    for(i in seq_len(num_simulation)){
+    for(i in seq_len(num_sample_size)){
 
-        #data[[1]]$mean_feature_importance
         sample_size <- c(sample_size, list_samples_per_group[i])
         mean_PA <- c(mean_PA, data[[i]]$mean_predictive_accuracy)
+        num_simulations <- ncol(data[[i]]$feature_importance)
 
         FI <- data[[i]]$mean_feature_importance
         # select the top most important proteins
@@ -171,7 +171,7 @@ designSampleSizeClassificationPlots <- function(data,
             labs(title = paste(list_samples_per_group[i], "samples/group"), size=10,
                  x = "",
                  y = "") +
-            ylim(0, 100)+
+            ylim(0, num_simulations)+
             theme(
                 panel.background = element_rect(fill = 'white', colour = "black"),
                 panel.grid.major = element_line(colour = 'gray95'),
@@ -189,7 +189,7 @@ designSampleSizeClassificationPlots <- function(data,
 
     ## size of width : * n
     height <- protein_importance_plot_height
-    width <- protein_importance_plot_width * num_simulation
+    width <- protein_importance_plot_width * num_sample_size
 
     ## print out Protein Importance Plot
     if(protein_importance_plot){

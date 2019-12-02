@@ -5,11 +5,19 @@
 \title{Simulate datasets with the given number of biological replicates and
 proteins based on the input \emph{data}}
 \usage{
-simulateDataset(data, annotation, num_simulations = 10,
-  expected_FC = "data", list_diff_proteins = NULL,
-  select_simulated_proteins = "proportion", protein_proportion = 1,
-  protein_number = 1000, samples_per_group = 50,
-  simulate_validation = FALSE, valid_samples_per_group = 50)
+simulateDataset(
+  data,
+  annotation,
+  num_simulations = 10,
+  expected_FC = "data",
+  list_diff_proteins = NULL,
+  select_simulated_proteins = "proportion",
+  protein_proportion = 1,
+  protein_number = 1000,
+  samples_per_group = 50,
+  simulate_validation = FALSE,
+  valid_samples_per_group = 50
+)
 }
 \arguments{
 \item{data}{Protein abundance data matrix.

@@ -4,8 +4,12 @@
 \alias{designSampleSizeClassification}
 \title{Estimate the mean predictive accuracy and mean protein importance over all the simulated datasets}
 \usage{
-designSampleSizeClassification(simulations, classifier = "rf",
-  parallel = TRUE)
+designSampleSizeClassification(
+  simulations,
+  classifier = "rf",
+  top_K = 10,
+  parallel = FALSE
+)
 }
 \arguments{
 \item{simulations}{A list of simulated datasets It should be the name of the output of \code{\link{simulateDataset}} function.}
@@ -13,6 +17,10 @@ designSampleSizeClassification(simulations, classifier = "rf",
 \item{classifier}{A string specifying which classfier to use. This function uses function `train' from package caret.
 The options are 1) rf (random forest calssifier, default option). 2) nnet (neural network),
 3) svmLinear (support vector machines with linear kernel), 4) logreg (logistic regression), and 5) naive_bayes (naive_bayes).}
+
+\item{top_K}{the number of proteins selected as predictive features (biomarker candidates).
+All the proteins are ranked in descending order based on its importance to separate different groups and
+the `top_K` proteins are selected as predictive features.}
 
 \item{parallel}{Default is FALSE. If TRUE, parallel computation is performed.}
 }

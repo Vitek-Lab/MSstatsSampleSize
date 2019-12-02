@@ -31,7 +31,8 @@ In addition, MSstatsTMT includes the following visualization plots for sample si
 
 1. `meanSDplot`: draw the plot for the mean protein abundance vs standard deviation in each condition for the input preliminary dataset. It can exhibit the quality of input data.
 2. `designSampleSizePCAplot`: make PCA plots for the simulated data with certain sample size.
-3. `designSampleSizeClassificationPlots`: visualize sample size calculation in classification, including predictive accuracy plot and protein importance plot for different sample sizes. 
+3. `designSampleSizeHypothesisTestingPlot`: visualize sample size calculation in hypothesis testing, which estimates the minimal required number of replicates under different expected fold changes.
+4. `designSampleSizeClassificationPlots`: visualize sample size calculation in classification, including predictive accuracy plot and protein importance plot for different sample sizes. 
 
 
 ## 1. Estimate mean protein abundance and variance per condition
@@ -312,9 +313,51 @@ designSampleSizeClassificationPlots(multiple_sample_sizes,
                                     ylimDown_predictive_accuracy = 0.6)
 ```
 
-## 4. Visualization for simulated datasets
+## 4. Sample size estimation for hypothesis testing
 
-### 4.1 designSampleSizePCAplot()
+### 4.1. designSampleSizeHypothesisTestingPlot()
+
+The function fits intensity-based linear model on the input `data`. Then it uses the fitted models and the fold changes estimated from the models to calculate sample size for hypothesis testing through `designSampleSize` function from MSstats package. It outputs a table with the minimal number of biological replciates per condition to acquire the expected FDR and power under different fold changes, and a PDF file with the sample size plot.
+
+#### Arguments
+* `data` : Protein abundance data matrix.
+Rows are proteins and columns are biological replicates (samples).
+* `annotation` : Group information for samples in data.
+`BioReplicate` for sample ID and `Condition` for group information are required.
+`BioReplicate` information should match with column names of `data`.
+* `desired_FC` : the range of a desired fold change. The first option (Default) is "data", indicating the range of the desired fold change is directly estimated from the input `data`, which are the minimal fold change and the maximal fold change in the input `data'. The second option is a vector which includes the lower and upper values of the desired fold change (For example, c(1.25,1.75)).
+* `select_testing_proteins` : the standard to select the proteins for hypothesis testing and sample size calculation. The variance (and the range of desired fold change if desiredFC = "data") for sample size calculation will be estimated from the selected proteins. It can be 1) "proportion" of total number of proteins in the input data or
+2) "number" to specify the number of proteins. "proportion" indicates that user should provide the value for `protein_proportion` option. "number" indicates that user should provide the value for `protein_number` option.
+* `protein_proportion` : Proportion of total number of proteins in the input data to test. For example, input data has 1,000 proteins and user selects `protein_proportion=0.1`. Proteins are ranked in decreasing order based on their mean abundance across all the samples. Then, 1,000 * 0.1 = 100 proteins will be selected from the top list to test. Default is 1.0, which meaans that all the proteins will be used.
+* `protein_number` : Number of proteins to test. For example, `protein_number=1000`.
+Proteins are ranked in decreasing order based on their mean abundance across all the samples and top `protein_number` proteins will be selected to test. Default is 1000.
+* `FDR` : a pre-specified false discovery ratio (FDR) to control the overall false positive. Default is 0.05.
+* `power` : a pre-specified statistical power which defined as the probability of detecting a true fold change. You should input the average of power you expect. Default is 0.9.
+* `width` : Width of the saved pdf file. Default is 5.
+* `height` : Height of the saved pdf file. Default is 5.
+* `address` : The name of folder that will store the results. Default folder is the current working directory. The other assigned folder has to be existed under the current working directory. An output pdf file is automatically created with the default name of `HypothesisTestingSampleSizePlot.pdf`. The command address can help to specify where to store the file as well as how to modify the beginning of the file name.
+If address=FALSE, plot will be not saved as pdf file but showed in window.
+
+#### Example
+```{r}
+#  output a pdf file with sample size calculation plot for hypothesis testing
+#  also return a table which summaries the plot
+HT_res <- designSampleSizeHypothesisTestingPlot(data = OV_SRM_train,
+                                                annotation= OV_SRM_train_annotation,
+                                                desired_FC = "data",
+                                                select_testing_proteins = "proportion",
+                                                protein_proportion = 1.0,
+                                                protein_number = 1000,
+                                                FDR=0.05,
+                                                power=0.9)
+
+# data frame with columns desiredFC, numSample, FDR, power and CV
+head(HT_res)
+```
+
+## 5. Visualization for simulated datasets
+
+### 5.1 designSampleSizePCAplot()
 
 This function draws PCA plots for the preliminary dataset and each simulated dataset in `simulations` (input for this function). It outputs a pdf file where the number of page is equal to the number of simulations plus 1. The first page represents a PCA plot for the input `data` (`OV_SRM_train`). Each of the following pages presents a PCA plot under one simulation. X-axis of PCA plot is the first component and y-axis is the second component. This function can be used to validate whether the simulated dataset looks consistent with the input preliminary dataset.
 

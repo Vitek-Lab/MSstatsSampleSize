@@ -5,8 +5,8 @@
 #' @param data Data matrix with protein abundance.
 #' Rows are proteins and columns are Biological replicates or samples.
 #' @param annotation Group information for samples in data.
-#' `BioReplicate' for sample ID and `Condition' for group information are required.
-#' `BioReplicate' information should be the same with the column of `data'.
+#' `Run' for MS run, `BioReplicate' for biological subject ID and `Condition' for group information are required.
+#' `Run' information should be the same with the column of `data'. Multiple `Run' may come from same `BioReplicate'.
 #' @return \emph{model} is the list of linear models trained for each protein.
 #' @return \emph{mu} is the mean abundance matrix of each protein in each phenotype group.
 #' @return \emph{sigma} is the sd matrix of each protein in each phenotype group.

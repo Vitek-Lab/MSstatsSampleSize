@@ -4,9 +4,17 @@
 \alias{meanSDplot}
 \title{Mean-SD plot}
 \usage{
-meanSDplot(data, x.axis.size = 10, y.axis.size = 10,
-  smoother_size = 1, xlimUp = 30, ylimUp = 3, height = 4,
-  width = 4, address = "")
+meanSDplot(
+  data,
+  x.axis.size = 10,
+  y.axis.size = 10,
+  smoother_size = 1,
+  xlimUp = 30,
+  ylimUp = 3,
+  height = 4,
+  width = 4,
+  address = ""
+)
 }
 \arguments{
 \item{data}{A list with mean protein abundance matrix and standard deviation matrix.

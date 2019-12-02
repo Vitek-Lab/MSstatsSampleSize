@@ -22,6 +22,9 @@
 #' @param classifier A string specifying which classfier to use. This function uses function `train' from package caret.
 #' The options are 1) rf (random forest calssifier, default option). 2) nnet (neural network),
 #' 3) svmLinear (support vector machines with linear kernel), 4) logreg (logistic regression), and 5) naive_bayes (naive_bayes).
+#' @param top_K the number of proteins selected as important features (biomarker candidates).
+#' All the proteins are ranked in descending order based on its importance to separate different groups and
+#' the `top_K` proteins are selected as important features.
 #' @param parallel Default is FALSE. If TRUE, parallel computation is performed.
 #'
 #' @return \emph{num_proteins} is the number of simulated proteins.
@@ -84,7 +87,8 @@
 #' @export
 designSampleSizeClassification <- function(simulations,
                                            classifier = "rf",
-                                           parallel = TRUE) {
+                                           top_K = 10,
+                                           parallel = FALSE) {
 
     ###############################################################################
     ## log file
@@ -116,10 +120,29 @@ designSampleSizeClassification <- function(simulations,
 
         stop("`classifier` should be one of 'rf', 'nnet', 'svmLinear', 'logreg', and 'naive_bayes'. Please check it. \n")
     }
-
     processout <- rbind(processout, c(paste0("classifier : ", classifier)))
     write.table(processout, file=finalfile, row.names=FALSE)
     message(" classifier: ", classifier)
+
+    ## 3. input for top_K option
+    if (is.null(top_K) ) {
+        processout <- rbind(processout, c("ERROR : top_K is required. Please provide the value for top_K."))
+        write.table(processout, file=finalfile, row.names=FALSE)
+
+        stop("top_K is required. Please provide the value for top_K. \n")
+
+    } else if ( top_K < 0 | top_K > simulations$num_proteins ) {
+        processout <- rbind(processout,
+                            c(paste0("ERROR : top_K should be between 0 and the total number of protein(", simulations$num_proteins,
+                                     "). Please check the value for top_K")))
+        write.table(processout, file=finalfile, row.names=FALSE)
+
+        stop(paste0("top_K should be between 0 and the total number of protein(", simulations$num_proteins,
+                    "). Please check the value for top_K \n"))
+    }
+    processout <- rbind(processout, c(paste0("top_K = ", top_K)))
+    write.table(processout, file=finalfile, row.names=FALSE)
+
 
     ###############################################################################
     ## start to train classifier
@@ -130,8 +153,8 @@ designSampleSizeClassification <- function(simulations,
 
     ## get the validation set for prediction
     iter <- length(simulations$simulation_train_Xs) # number of simulations
-    num_proteins <- ncol(simulations$simulation_train_Xs[[1]])
-    num_samples <- table(simulations$simulation_train_Ys[[1]])
+    num_proteins <- simulations$num_proteins
+    num_samples <- simulations$num_samples
     valid_x <- simulations$valid_X
     valid_y <- simulations$valid_Y
 
@@ -145,21 +168,23 @@ designSampleSizeClassification <- function(simulations,
         # param <- SnowParam(workers = threads, type = "SOCK")
 
         # ## fit the classifier for each simulation dataset
-        # results <- bplapply(1:iter, .classification,
+        # results <- bplapply(1:iter, .classificationPerformance,
         #                     classifier=classifier,
         #                     train_x_list = simulations$simulation_train_Xs,
         #                     train_y_list = simulations$simulation_train_Ys,
         #                     valid_x = valid_x,
         #                     valid_y = valid_y,
-        #                     BPPARAM=param)
+        #                     BPPARAM=param,
+        #                     top_K = top_K)
 
         ## fit the classifier for each simulation dataset
-        results <- bplapply(seq_len(iter), .classification,
+        results <- bplapply(seq_len(iter), .classificationPerformance,
                             classifier=classifier,
                             train_x_list = simulations$simulation_train_Xs,
                             train_y_list = simulations$simulation_train_Ys,
                             valid_x = valid_x,
-                            valid_y = valid_y)
+                            valid_y = valid_y,
+                            top_K = top_K)
 
 
     } else { ## if parallel FALSE,
@@ -171,28 +196,35 @@ designSampleSizeClassification <- function(simulations,
 
         ## fit the classifier for each simulation dataset
         results <- lapply(seq_len(iter),
-                          .classification,
+                          .classificationPerformance,
                           classifier=classifier,
                           train_x_list = simulations$simulation_train_Xs,
                           train_y_list = simulations$simulation_train_Ys,
                           valid_x = valid_x,
-                          valid_y = valid_y)
+                          valid_y = valid_y,
+                          top_K = top_K)
 
     }
 
     ## calculate the mean predictive accuracy over all the simulations
     PA <- NULL
 
-    ## calculate the mean protein importance over all the simulations
+    ## calculate the frequency a protein is selected as important (biomarker candidates)
     FI <- NULL
-    features <- rownames(varImp(results[[1]][[2]], scale = TRUE)$importance)
+    features <- rownames(varImp(results[[1]]$model, scale = TRUE)$importance)
 
     for (i in seq_len(iter)) {
         # record the importance of each protein
-        PA <- c(PA, results[[i]][[1]])
+        PA <- c(PA, results[[i]]$acc)
 
         # record the importance of each protein
-        FI <- cbind(FI, varImp(results[[i]][[2]], scale = TRUE)$importance[features, "Overall"])
+        imp <- varImp(results[[i]]$model, scale = TRUE)$importance
+        # select the top-k important proteins
+        imp.prots <- rownames(imp)[order(imp, decreasing=TRUE)][seq_len(top_K)]
+        # if important, set 1; otherwise,set 0
+        imp$Important <- ifelse(rownames(imp) %in% imp.prots, 1, 0)
+
+        FI <- cbind(FI, imp[features, "Important"])
 
     }
 
@@ -211,7 +243,7 @@ designSampleSizeClassification <- function(simulations,
     meanPA <-  mean(PA)
 
     # calculate mean feature importance
-    meanFI <-  rowMeans(FI)
+    meanFI <-  rowSums(FI)
     names(meanFI) <- features
     # sort in descending order
     meanFI <- sort(meanFI, decreasing=TRUE)

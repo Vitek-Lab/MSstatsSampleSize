@@ -102,27 +102,66 @@
 
 }
 
+
 #' For each simulated dataset, calculate predictive accuracy on validation set
 #'
 #' @param index protein abundance data for one protein.
 #' @return A list with (1) predictive accuracy on validation set and
 #' (2) the trained classification model
 #' @keywords internal
-.classification <- function(index, classifier, train_x_list, train_y_list, valid_x, valid_y){
+.classificationPerformance <- function(index, classifier, train_x_list, train_y_list, valid_x, valid_y, top_K){
 
     # record the train x and y
     x <- as.data.frame(train_x_list[[index]])
     y <- as.factor(train_y_list[[index]])
 
+    model <- .classificationModel(x = x,
+                                  y = y,
+                                  classifier = classifier)
+
+    pred.features <- rownames(varImp(model, scale = TRUE)$importance)[seq(top_K)]
+
+    pred.model <- .classificationModel(x = x[, pred.features],
+                                       y = y,
+                                       classifier = classifier)
+
+    ## Predict validation data
+    pred_y <- predict(pred.model, valid_x[, pred.features])
+
+    ## Calculate predictive accuracy on validation data
+    acc <- sum(diag(table(pred_y, valid_y))) / length(pred_y)
+    acc
+
+    # ## Predict validation data with all the proteins
+    # pred_y <- predict(model, valid_x)
+    #
+    # ## Calculate predictive accuracy on validation data
+    # acc <- sum(diag(table(pred_y, valid_y))) / length(pred_y)
+    # acc
+
+    ## record the predictive accuracy and train model
+    run <- list(acc = acc, model = model)
+
+    return(run)
+
+}
+
+
+#' Fit a classification model
+#'
+#' @param x protein abundance data for one protein
+#' @param y group information
+#' @return trained classification model
+#' @keywords internal
+.classificationModel <- function(x, y, classifier){
+
     if(classifier == "logreg"){
         ## Train logistic regression on training data
         model <- caret::train(x=x, y=make.names(y),
-                              method = classifier,
                               trControl = caret::trainControl(method = "none", classProbs = TRUE),
                               # trControl = trainControl(method = "cv", number=10, classProbs = TRUE),
                               method = "glm",
-                              family = "binomial",
-                              verbose=TRUE)
+                              family = "binomial",)
 
     } else {
         ## set the parameters of classifier
@@ -142,16 +181,7 @@
                               verbose=TRUE)
     }
 
-    ## Predict validation data
-    model.pred <- predict(model, valid_x)
-
-    ## Calculate predictive accuracy on validation data
-    acc <- sum(diag(table(model.pred, valid_y))) / length(model.pred)
-
-    ## record the predictive accuracy and train model
-    run <- list(acc, model)
-
-    return(run)
+    return(model)
 
 }
 

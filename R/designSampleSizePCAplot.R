@@ -137,6 +137,7 @@ designSampleSizePCAplot <- function(simulations,
         pcaplot <- ggplot(data = pc.result,
                           aes_string(x = 'PC1', y = 'PC2', color = 'group')) +
             geom_point(size = dot.size) +
+            stat_ellipse() +
             labs(title = "Input dataset",
                  x = paste0("PC1 (", exp.var[1], "% explained var.)"),
                  y = paste0("PC2 (", exp.var[2], "% explained var.)")) +
@@ -214,6 +215,7 @@ designSampleSizePCAplot <- function(simulations,
             pcaplot <- ggplot(data = pc.result,
                               aes_string(x = 'PC1', y = 'PC2', color = 'group')) +
                 geom_point(size = dot.size) +
+                stat_ellipse() +
                 labs(title = paste0("Simulation:", index[i]),
                      x = paste0("PC1 (", exp.var[1], "% explained var.)"),
                      y = paste0("PC2 (", exp.var[2], "% explained var.)")) +

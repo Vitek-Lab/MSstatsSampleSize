@@ -3,7 +3,6 @@
 \docType{package}
 \name{MSstatsSampleSize}
 \alias{MSstatsSampleSize}
-\alias{MSstatsSampleSize-package}
 \title{MSstatsSampleSize: A package for optimal design of high-dimensional MS-based proteomics experiment}
 \description{
 A set of functions for sample size calculation. The packages estimates the variance in the input protein abundance data
