@@ -18,9 +18,9 @@ designSampleSizeClassification(
 The options are 1) rf (random forest calssifier, default option). 2) nnet (neural network),
 3) svmLinear (support vector machines with linear kernel), 4) logreg (logistic regression), and 5) naive_bayes (naive_bayes).}
 
-\item{top_K}{the number of proteins selected as predictive features (biomarker candidates).
+\item{top_K}{the number of proteins selected as important features (biomarker candidates).
 All the proteins are ranked in descending order based on its importance to separate different groups and
-the `top_K` proteins are selected as predictive features.}
+the `top_K` proteins are selected as important features.}
 
 \item{parallel}{Default is FALSE. If TRUE, parallel computation is performed.}
 }

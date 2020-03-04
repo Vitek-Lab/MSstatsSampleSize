@@ -26,7 +26,7 @@ designSampleSizeClassificationPlots(
 The input should include at least two simulation results with different sample sizes.}
 
 \item{list_samples_per_group}{A vector includes the different sample sizes simulated. This is required.
-The number of simulation in the input `data' should be equal to the length of list_samples_per_group}
+The number of simulated sample sizes in the input `data' should be equal to the length of list_samples_per_group}
 
 \item{num_important_proteins_show}{The number of proteins to show in protein importance plot.}
 
