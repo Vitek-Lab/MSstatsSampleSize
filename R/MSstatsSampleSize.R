@@ -12,6 +12,7 @@
 #'   \item \code{\link{designSampleSizeClassification}} : estimate the mean predictive accuracy and protein importance over all the simulated datasets.
 #'   \item \code{\link{designSampleSizePCAplot}} : make PCA plots with the first two components for each simulated dataset.
 #'   \item \code{\link{designSampleSizeClassificationPlots}} : visualization for sample size calculation in classification.
+#'   \item \code{\link{designSampleSizeHypothesisTestingPlot}} : Sample size calculation plot for hypothesis testing.
 #' }
 #'
 #' @docType package

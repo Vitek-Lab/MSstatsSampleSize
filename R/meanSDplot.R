@@ -44,6 +44,9 @@ meanSDplot <- function(data,
                        width = 4,
                        address = "") {
 
+
+    ..density.. <-  freq <- x <- y <- NULL
+
     ###############################################################################
     ## log file
     ## save process output in each step

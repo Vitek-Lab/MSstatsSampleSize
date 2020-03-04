@@ -108,6 +108,8 @@ designSampleSizeClassificationPlots <- function(data,
                                                 ylimDown_predictive_accuracy = 0.0,
                                                 address = "") {
 
+    prots <- freq <- NULL
+
     ###############################################################################
     ## log file
     ## save process output in each step
