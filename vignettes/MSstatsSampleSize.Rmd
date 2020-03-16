@@ -21,7 +21,7 @@ library(MSstatsSampleSize)
 ```
 
 
-This vignette introduces all the functionalities and summarizes their options in MSstatsSampleSize. MSstatsSampleSize requires protein abundances quantified in mass spectrometry runs as a matrix (columns for biological replicates (samples) and rows for proteins) and annotation including biological replicates (samples) and their condition (such as a disease and time points). MSstatsSampleSize includes the following functionalities:
+This vignette introduces all the functionalities and summarizes their options in MSstatsSampleSize. MSstatsSampleSize requires protein abundances quantified in mass spectrometry runs as a matrix (columns for biological replicates (samples) and rows for proteins) and annotation including Run (Ms runs), biological replicates (samples) and their condition (such as a disease and time points). MSstatsSampleSize includes the following functionalities:
 
 1. `estimateVar`: estimates the variance across biological replicates and MS run for each protein.
 2. `simulateDataset`: simulates data with the given number(s) of biological replicates based on the variance estimation. 
@@ -45,7 +45,8 @@ The function fits intensity-based linear model on the prelimiary data (Input, he
 #### Arguments
 
 * `data` : Data matrix with protein abundance. Rows are proteins and columns are Biological replicates or samples.
-* `annotation` : annotation Group information for samples in data. `BioReplicate` for sample ID and `Condition` for group information are required. `BioReplicate` information should be the same with the column of `data`.
+* `annotation` : Group information for samples in data. `Run` for MS run, `BioReplicate` for biological subject ID and `Condition` for group information are required. `Run` information should be the same with the column of `data`. Multiple `Run` may come from same `BioReplicate`.
+
 
 #### Example
 ```{r}
@@ -61,7 +62,7 @@ The function fits intensity-based linear model on the prelimiary data (Input, he
 # OV_SRM_train <- OV_SRM_train[, colnames(OV_SRM_train)!="Protein"]
 head(OV_SRM_train)
 
-# Read in annotation including condition and biological replicates.
+# Read in annotation including condition, biological replicates and MS runs.
 # Users should make this annotation file.
 # OV_SRM_train_annotation <- read.csv(file="OV_SRM_train_annotation.csv", header=TRUE)
 head(OV_SRM_train_annotation)
@@ -116,7 +117,7 @@ This function simulate datasets with the given numbers of biological replicates 
 #### Arguments
 
 * `data` : Protein abundance data matrix. Rows are proteins and columns are biological replicates(samples).
-* `annotation` : Group information for samples in data. `BioReplicate` for sample ID and `Condition` for group information are required. `BioReplicate` information should match with column names of `data`.
+* `annotation` : Group information for samples in data. `Run` for MS run, `BioReplicate` for biological subject ID and `Condition` for group information are required. `Run` information should be the same with the column of `data`. Multiple `Run` may come from same `BioReplicate`.
 * `num_simulations` :  Number of times to repeat simulation experiments (Number of simulated datasets). Default is 10.
 * `expected_FC` :  Expected fold change of proteins. The first option (Default) is "data", indicating the fold changes are directly estimated from the input `data`. The second option is a vector with predefined fold changes of listed proteins. The vector names must match with the unique information of Condition in `annotation`. One group must be selected as a baseline and has fold change 1 in the vector. The user should provide list_diff_proteins, which users expect to have the fold changes greater than 1. Other proteins that are not available in `list_diff_proteins` will be expected to have fold change = 1.
 * `list_diff_proteins` : Vector of proteins names which are set to have fold changes greater than 1 between conditions. If user selected `expected_FC= "data" `, this should be NULL. 
@@ -249,6 +250,8 @@ This function visualizes for sample size calculation in classification. Mean pre
 
 (2) The protein importance plot includes multiple subplots. The number of subplots is equal to `list_samples_per_group`. Each subplot shows the top `num_important_proteins_show` most important proteins under each sample size. The Y-axis of each subplot is the protein name and X-axis is the mean protein importance under the sample size.
 
+(3) A numeric value which is the estimated optimal sample size per group for the input dataset for classification problem.
+
 While varying the number of biological replicates to simulate, the sample size per condition which generates the largest predictive accuracy can be found from the predictive accuracy plot, The optimal sample size per condition can be used to design future experiments. Also, the proteins, which can classify the conditions best, are reported by the protein importance plot. 
 
 #### Arguments
@@ -322,9 +325,7 @@ The function fits intensity-based linear model on the input `data`. Then it uses
 #### Arguments
 * `data` : Protein abundance data matrix.
 Rows are proteins and columns are biological replicates (samples).
-* `annotation` : Group information for samples in data.
-`BioReplicate` for sample ID and `Condition` for group information are required.
-`BioReplicate` information should match with column names of `data`.
+* `annotation` : Group information for samples in data. `Run` for MS run, `BioReplicate` for biological subject ID and `Condition` for group information are required. `Run` information should be the same with the column of `data`. Multiple `Run` may come from same `BioReplicate`.
 * `desired_FC` : the range of a desired fold change. The first option (Default) is "data", indicating the range of the desired fold change is directly estimated from the input `data`, which are the minimal fold change and the maximal fold change in the input `data'. The second option is a vector which includes the lower and upper values of the desired fold change (For example, c(1.25,1.75)).
 * `select_testing_proteins` : the standard to select the proteins for hypothesis testing and sample size calculation. The variance (and the range of desired fold change if desiredFC = "data") for sample size calculation will be estimated from the selected proteins. It can be 1) "proportion" of total number of proteins in the input data or
 2) "number" to specify the number of proteins. "proportion" indicates that user should provide the value for `protein_proportion` option. "number" indicates that user should provide the value for `protein_number` option.

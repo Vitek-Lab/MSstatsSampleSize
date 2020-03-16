@@ -46,6 +46,7 @@
 #' @return protein importance plot includes multiple subplots. The number of subplots is equal to `list_samples_per_group'.
 #' Each subplot shows the top `num_important_proteins_show' most important proteins under each sample size.
 #' The Y-axis of each subplot is the protein name and X-axis is the mean protein importance under the sample size.
+#' @return a numeric value which is the estimated optimal sample size per group for the input dataset for classification problem.
 #' @author Ting Huang, Meena Choi, Olga Vitek.
 #' @examples
 #' data(OV_SRM_train)
@@ -152,6 +153,7 @@ designSampleSizeClassificationPlots <- function(data,
 
     sample_size <- NULL
     mean_PA <- NULL
+    PA <- NULL
     FI_plots <- list()
 
     ## if there is list protein numbers. we need rows and columns.
@@ -160,6 +162,7 @@ designSampleSizeClassificationPlots <- function(data,
 
         sample_size <- c(sample_size, list_samples_per_group[i])
         mean_PA <- c(mean_PA, data[[i]]$mean_predictive_accuracy)
+        PA <- rbind(PA, data[[i]]$predictive_accuracy)
         num_simulations <- ncol(data[[i]]$feature_importance)
 
         FI <- data[[i]]$mean_feature_importance
@@ -187,7 +190,8 @@ designSampleSizeClassificationPlots <- function(data,
                 axis.title.y = element_text(size = y.axis.size+5, vjust=0.3),
                 title = element_text(size = x.axis.size+2, vjust=1.5))
     }
-
+    PA <- as.data.frame(PA)
+    PA$samplesize <- sample_size
 
     ## size of width : * n
     height <- protein_importance_plot_height
@@ -231,6 +235,12 @@ designSampleSizeClassificationPlots <- function(data,
     plotdata1 <- data.frame(meanPA = mean_PA,
                             samplesize = sample_size)
 
+    plotdata2 <- melt(PA,
+                      id.vars = "samplesize",
+                      variable.name="simulation",
+                      value.name="predaccuracy"
+                      )
+
     if(predictive_accuracy_plot){
         if (address != FALSE) {
             allfiles <- list.files()
@@ -249,12 +259,12 @@ designSampleSizeClassificationPlots <- function(data,
 
         ## need to update for multiple protein numbers
 
-        p1 <- ggplot(data = plotdata1, aes(x= sample_size, y= mean_PA)) +
-            geom_point() +
-            geom_line() +
-            scale_x_continuous(breaks = list_samples_per_group) + ## specify the defined sample size
+        p1 <- ggplot(data = plotdata2, aes(x= as.factor(samplesize), y= predaccuracy)) +
+            geom_boxplot(color = "black") +
+            stat_summary(fun.y=mean, geom="line", aes(group=1), color = "red")  +
+            stat_summary(fun.y=mean, geom="point", color = "red") +
             scale_y_continuous(limits = c(ylimDown_predictive_accuracy, ylimUp_predictive_accuracy)) +
-            labs(x="Pre-defined sample size", y='Mean accuracy') +
+            labs(x="Pre-defined sample size", y='Predictive accuracy') +
             theme(
                 panel.background = element_rect(fill = 'white', colour = "black"),
                 panel.grid.major = element_line(colour = 'gray95'),
@@ -266,7 +276,8 @@ designSampleSizeClassificationPlots <- function(data,
                 axis.ticks = element_line(colour = "black"),
                 axis.title.x = element_text(size = x.axis.size+4, vjust=-0.4),
                 axis.title.y = element_text(size = y.axis.size+4, vjust=0.3),
-                title = element_text(size = x.axis.size+3, vjust=1.5))
+                title = element_text(size = x.axis.size+3, vjust=1.5),
+                legend.position = "none")
 
         print(p1)
 
@@ -279,6 +290,21 @@ designSampleSizeClassificationPlots <- function(data,
         message(" Drew Predictive Accuracy Plot.")
 
     }
+
+    ## calculate the derivative between two sample sizes
+    dydx <- diff(mean_PA)/diff(as.numeric(as.character(sample_size)))
+
+    if(any(dydx >= 0.0001)){
+        optimal_index <- which(dydx >= 0.0001)[length(which(dydx >= 0.0001))] + 1
+        optimal_sample_size_per_group <- sample_size[optimal_index]
+        message(" The optimal sample size for the input dataset for classification problem is ", sample_size[optimal_index], " samples per group!")
+
+    } else{
+        optimal_sample_size_per_group <- sample_size[1]
+        message(" The optimal sample size for the input dataset for classification problem is ", sample_size[1], " samples per group!")
+    }
+
+    return(optimal_sample_size_per_group)
 
 }
 

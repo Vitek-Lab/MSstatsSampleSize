@@ -11,8 +11,8 @@
 #' @param data Protein abundance data matrix.
 #' Rows are proteins and columns are biological replicates (samples).
 #' @param annotation Group information for samples in data.
-#' `BioReplicate' for sample ID and `Condition' for group information are required.
-#' `BioReplicate' information should match with column names of `data'.
+#' `Run' for MS run, `BioReplicate' for biological subject ID and `Condition' for group information are required.
+#' `Run' information should be the same with the column of `data'. Multiple `Run' may come from same `BioReplicate'.
 #' @param desired_FC the range of a desired fold change.
 #' The first option (Default) is "data",
 #' indicating the range of the desired fold change is directly estimated from the input `data',
@@ -102,7 +102,7 @@ designSampleSizeHypothesisTestingPlot <- function(data,
     ###############################################################################
 
     ## match between data and annotation
-    data <- data[, annotation$BioReplicate]
+    data <- data[, annotation$Run]
     group <- as.factor(as.character(annotation$Condition))
 
     ## input checking

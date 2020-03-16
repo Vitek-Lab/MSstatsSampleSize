@@ -75,14 +75,14 @@ estimateVar <- function(data,
 
     }
 
-    if (!all(annotation$BioReplicate %in% colnames(data)) &
+    if (!all(annotation$Run %in% colnames(data)) &
         nrow(annotation) == ncol(data)) {
         processout <- rbind(processout, c("ERROR: Please check the annotation file.
-                                          'BioReplicate' must match with the column names of 'data'."))
+                                          'Run' must match with the column names of 'data'."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
         stop("Please check the annotation file.
-             'BioReplicate' must match with the column names of 'data'.  \n")
+             'Run' must match with the column names of 'data'.  \n")
 
     }
 
@@ -94,23 +94,24 @@ estimateVar <- function(data,
 
     }
 
-    if (any(is.na(annotation$BioReplicate)) |
-        any(is.na(annotation$BioReplicate))){
-        processout <- rbind(processout, c("ERROR: NA not permitted in 'BioReplicate' or 'Condition' of annotaion."))
+    if (any(is.na(annotation$Run)) |
+        any(is.na(annotation$BioReplicate))|
+        any(is.na(annotation$Condition))){
+        processout <- rbind(processout, c("ERROR: NA not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
-        stop("NA not permitted in 'BioReplicate' or 'Condition' of annotaion.  \n")
+        stop("NA not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion.  \n")
     }
 
     ## match between data and annotation
-    data <- data[, annotation$BioReplicate]
+    data <- data[, annotation$Run]
     group <- as.factor(as.character(annotation$Condition))
 
     if (nrow(data) == 0) {
-        processout <- rbind(processout, c("ERROR: Please check the column names of data and BioReplicate in annotation."))
+        processout <- rbind(processout, c("ERROR: Please check the column names of data and Run in annotation."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
-        stop("Please check the column names of data and BioReplicate in annotation. \n")
+        stop("Please check the column names of data and Run in annotation. \n")
     }
 
     processout <- rbind(processout, c(paste0("Summary : number of proteins in the input data = ", nrow(data) )))

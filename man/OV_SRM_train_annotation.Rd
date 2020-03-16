@@ -14,9 +14,10 @@ It should be prepared by users. The variables are as follows:
 }
 \details{
 \itemize{
-  \item BioReplicate : Unique ID for biological subject.
-  It should be the same as the column names of \code{\link{OV_SRM_train}}
-  \item Condition : Condition for BioReplicate (ex. Healthy, Cancer, Time0)
+ \item Run : MS run ID. It should be the same as the column names of \code{\link{OV_SRM_train}}.
+ Multiple `Run' may come from same `BioReplicate'.
+ \item BioReplicate : Unique ID for biological subject.
+ \item Condition : Condition for BioReplicate (ex. Healthy, Cancer, Time0)
 }
 }
 \examples{

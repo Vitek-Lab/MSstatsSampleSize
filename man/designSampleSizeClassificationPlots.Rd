@@ -63,6 +63,8 @@ The X-axis represents different sample sizes and y-axis represents the mean pred
 protein importance plot includes multiple subplots. The number of subplots is equal to `list_samples_per_group'.
 Each subplot shows the top `num_important_proteins_show' most important proteins under each sample size.
 The Y-axis of each subplot is the protein name and X-axis is the mean protein importance under the sample size.
+
+a numeric value which is the estimated optimal sample size per group for the input dataset for classification problem.
 }
 \description{
 To illustrate the mean classification accuracy and protein importance under different sample sizes

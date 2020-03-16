@@ -16,8 +16,8 @@
 #' @param data Protein abundance data matrix.
 #' Rows are proteins and columns are biological replicates (samples).
 #' @param annotation Group information for samples in data.
-#' `BioReplicate' for sample ID and `Condition' for group information are required.
-#' `BioReplicate' information should match with column names of `data'.
+#' `Run' for MS run, `BioReplicate' for biological subject ID and `Condition' for group information are required.
+#' `Run' information should be the same with the column of `data'. Multiple `Run' may come from same `BioReplicate'.
 #' @param num_simulations Number of times to repeat simulation experiments
 #' (Number of simulated datasets). Default is 10.
 #' @param expected_FC Expected fold change of proteins.
@@ -135,7 +135,7 @@ simulateDataset <- function(data,
     ###############################################################################
     ## Input and option checking
 
-    data <- data[, annotation$BioReplicate]
+    data <- data[, annotation$Run]
     group <- as.factor(as.character(annotation$Condition))
 
 

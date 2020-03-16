@@ -24,8 +24,8 @@ simulateDataset(
 Rows are proteins and columns are biological replicates (samples).}
 
 \item{annotation}{Group information for samples in data.
-`BioReplicate' for sample ID and `Condition' for group information are required.
-`BioReplicate' information should match with column names of `data'.}
+`Run' for MS run, `BioReplicate' for biological subject ID and `Condition' for group information are required.
+`Run' information should be the same with the column of `data'. Multiple `Run' may come from same `BioReplicate'.}
 
 \item{num_simulations}{Number of times to repeat simulation experiments
 (Number of simulated datasets). Default is 10.}
