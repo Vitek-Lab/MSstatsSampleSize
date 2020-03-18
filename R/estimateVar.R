@@ -67,12 +67,27 @@ estimateVar <- function(data,
     ## input checking
     if(anyDuplicated(colnames(data)) != 0){
         processout <- rbind(processout, c("ERROR: Please check the column names of 'data'.
-                                          There are duplicated 'BioReplicate'."))
+                                          There are duplicated 'Run'."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
         stop("Please check the column names of 'data'.
-             There are duplicated 'BioReplicate'.  \n")
+             There are duplicated 'Run'. \n")
 
+    }
+
+    ## check whether annotation has requried columns
+    required.annotation <- c('Condition', 'BioReplicate', 'Run')
+
+    if (!all(required.annotation %in% colnames(annotation))) {
+
+        missedAnnotation <- which(!(required.annotation %in% colnames(annotation)))
+
+        processout <- rbind(processout, c(paste(toString(required.annotation[missedAnnotation]),
+                                              "is not provided in Annotation. Please check the annotation file.")))
+        write.table(processout, file=finalfile, row.names=FALSE)
+
+        stop(paste(toString(required.annotation[missedAnnotation]),
+                   "is not provided in Annotation. Please check the annotation file. \n"))
     }
 
     if (!all(annotation$Run %in% colnames(data)) &
@@ -82,7 +97,7 @@ estimateVar <- function(data,
         write.table(processout, file=finalfile, row.names=FALSE)
 
         stop("Please check the annotation file.
-             'Run' must match with the column names of 'data'.  \n")
+             'Run' must match with the column names of 'data'. \n")
 
     }
 
@@ -90,7 +105,7 @@ estimateVar <- function(data,
         processout <- rbind(processout, c("ERROR: Need at least two conditions to do simulation."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
-        stop("Need at least two conditions to do simulation.  \n")
+        stop("Need at least two conditions to do simulation. \n")
 
     }
 
@@ -100,7 +115,7 @@ estimateVar <- function(data,
         processout <- rbind(processout, c("ERROR: NA not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
-        stop("NA not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion.  \n")
+        stop("NA not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion. \n")
     }
 
     ## match between data and annotation

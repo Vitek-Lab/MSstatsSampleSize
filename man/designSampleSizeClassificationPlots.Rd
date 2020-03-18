@@ -7,6 +7,7 @@
 designSampleSizeClassificationPlots(
   data,
   list_samples_per_group,
+  optimal_threshold = 1e-04,
   num_important_proteins_show = 10,
   protein_importance_plot = TRUE,
   predictive_accuracy_plot = TRUE,
@@ -27,6 +28,9 @@ The input should include at least two simulation results with different sample s
 
 \item{list_samples_per_group}{A vector includes the different sample sizes simulated. This is required.
 The number of simulated sample sizes in the input `data' should be equal to the length of list_samples_per_group}
+
+\item{optimal_threshold}{The maximal cutoff for deciding the optimal sample size. Default is 0.0001. Large cutoff can lead to smaller optimal sample size
+whereas small cutoff produces large optimal sample size.}
 
 \item{num_important_proteins_show}{The number of proteins to show in protein importance plot.}
 

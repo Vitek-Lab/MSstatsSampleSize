@@ -258,6 +258,8 @@ While varying the number of biological replicates to simulate, the sample size p
 
 * `data` : A list of outputs from function `designSampleSizeClassification`. Each element represents the results under a specific sample size. The input should include at least two simulation results with different sample sizes.
 * `list_samples_per_group` :  A vector includes the different sample sizes simulated. This is required. The number of simulation in the input `data` should be equal to the length of list_samples_per_group
+* `optimal_threshold`: The maximal cutoff for deciding the optimal sample size. Default is 0.0001. Large cutoff can lead to smaller optimal sample size
+whereas small cutoff produces large optimal sample size.
 * `num_important_proteins_show` : The number of proteins to show in protein importance plot.
 * `protein_importance_plot` : TRUE(default) draws protein importance plot.
 * `predictive_accuracy_plot` : TRUE(default) draws predictive accuracy plot.

@@ -24,6 +24,8 @@
 #' The input should include at least two simulation results with different sample sizes.
 #' @param list_samples_per_group A vector includes the different sample sizes simulated. This is required.
 #' The number of simulated sample sizes in the input `data' should be equal to the length of list_samples_per_group
+#' @param optimal_threshold The maximal cutoff for deciding the optimal sample size. Default is 0.0001. Large cutoff can lead to smaller optimal sample size
+#'  whereas small cutoff produces large optimal sample size.
 #' @param num_important_proteins_show The number of proteins to show in protein importance plot.
 #' @param protein_importance_plot TRUE(default) draws protein importance plot.
 #' @param predictive_accuracy_plot TRUE(default) draws predictive accuracy plot.
@@ -96,6 +98,7 @@
 #'
 designSampleSizeClassificationPlots <- function(data,
                                                 list_samples_per_group,
+                                                optimal_threshold = 0.0001,
                                                 num_important_proteins_show = 10,
                                                 protein_importance_plot = TRUE,
                                                 predictive_accuracy_plot = TRUE,
@@ -109,7 +112,7 @@ designSampleSizeClassificationPlots <- function(data,
                                                 ylimDown_predictive_accuracy = 0.0,
                                                 address = "") {
 
-    prots <- freq <- NULL
+    prots <- freq <- samplesize <- predaccuracy <- NULL
 
     ###############################################################################
     ## log file
@@ -259,25 +262,44 @@ designSampleSizeClassificationPlots <- function(data,
 
         ## need to update for multiple protein numbers
 
+        ## calculate the derivative between two sample sizes
+        dydx <- diff(mean_PA)/diff(as.numeric(as.character(sample_size)))
+
+        if(any(dydx >= optimal_threshold)){
+            optimal_index <- which(dydx >= optimal_threshold)[length(which(dydx >= optimal_threshold))] + 1
+            optimal_sample_size_per_group <- sample_size[optimal_index]
+            message(" The optimal sample size for the input dataset for classification problem is ", sample_size[optimal_index], " samples per group!")
+
+        } else{
+            optimal_sample_size_per_group <- sample_size[1]
+            message(" The optimal sample size for the input dataset for classification problem is ", sample_size[1], " samples per group!")
+        }
+
+        # # boxplot with numeric x-axis
+        # p1 <- ggplot(data = plotdata2, aes(x= samplesize, y= predaccuracy, group = samplesize)) +
         p1 <- ggplot(data = plotdata2, aes(x= as.factor(samplesize), y= predaccuracy)) +
             geom_boxplot(color = "black") +
-            stat_summary(fun.y=mean, geom="line", aes(group=1), color = "red")  +
-            stat_summary(fun.y=mean, geom="point", color = "red") +
+            stat_summary(fun.y=mean, geom="line", aes(group=1), color = "blue", alpha = 0.25)  +
+            stat_summary(fun.y=mean, geom="point", color = "blue", shape = 5) +
+            #geom_vline(xintercept=optimal_sample_size_per_group, linetype="dashed", color = "red") +
             scale_y_continuous(limits = c(ylimDown_predictive_accuracy, ylimUp_predictive_accuracy)) +
-            labs(x="Pre-defined sample size", y='Predictive accuracy') +
-            theme(
-                panel.background = element_rect(fill = 'white', colour = "black"),
-                panel.grid.major = element_line(colour = 'gray95'),
-                panel.grid.minor = element_blank(),
-                strip.background=element_rect(fill = 'gray95'),
-                strip.text.x = element_text(colour = c("#00B0F6"), size=14),
-                axis.text.x = element_text(size = x.axis.size, colour="black"),
-                axis.text.y = element_text(size = y.axis.size, colour="black"),
-                axis.ticks = element_line(colour = "black"),
-                axis.title.x = element_text(size = x.axis.size+4, vjust=-0.4),
-                axis.title.y = element_text(size = y.axis.size+4, vjust=0.3),
-                title = element_text(size = x.axis.size+3, vjust=1.5),
-                legend.position = "none")
+            labs(x = "Pre-defined sample size per group", y = "Predictive accuracy") +
+            theme(panel.background = element_rect(fill = "white", colour = "black"),
+                  panel.grid.major = element_line(colour = "gray95"),
+                  panel.grid.minor = element_blank(),
+                  strip.background = element_rect(fill = "gray95"),
+                  strip.text.x = element_text(colour = c("#00B0F6"),
+                                              size = 14),
+                  axis.text.x = element_text(size = x.axis.size,
+                                             colour = "black"),
+                  axis.text.y = element_text(size = y.axis.size,
+                                             colour = "black"),
+                  axis.ticks = element_line(colour = "black"),
+                  axis.title.x = element_text(size = x.axis.size + 5,
+                                              vjust = -0.4),
+                  axis.title.y = element_text(size = y.axis.size + 5,
+                                              vjust = 0.3),
+                  legend.position = "none")
 
         print(p1)
 
@@ -291,20 +313,6 @@ designSampleSizeClassificationPlots <- function(data,
 
     }
 
-    ## calculate the derivative between two sample sizes
-    dydx <- diff(mean_PA)/diff(as.numeric(as.character(sample_size)))
-
-    if(any(dydx >= 0.0001)){
-        optimal_index <- which(dydx >= 0.0001)[length(which(dydx >= 0.0001))] + 1
-        optimal_sample_size_per_group <- sample_size[optimal_index]
-        message(" The optimal sample size for the input dataset for classification problem is ", sample_size[optimal_index], " samples per group!")
-
-    } else{
-        optimal_sample_size_per_group <- sample_size[1]
-        message(" The optimal sample size for the input dataset for classification problem is ", sample_size[1], " samples per group!")
-    }
-
     return(optimal_sample_size_per_group)
 
 }
-
