@@ -110,46 +110,46 @@ designSampleSizeClassificationPlots <- function(data,
                                                 predictive_accuracy_plot_height = 4,
                                                 ylimUp_predictive_accuracy = 1,
                                                 ylimDown_predictive_accuracy = 0.0,
-                                                address = "") {
+                                                address = "", ...) {
 
     prots <- freq <- samplesize <- predaccuracy <- NULL
 
     ###############################################################################
     ## log file
     ## save process output in each step
-    loginfo <- .logGeneration()
-    finalfile <- loginfo$finalfile
-    processout <- loginfo$processout
-
-    processout <- rbind(processout,
-                        as.matrix(c(" ", " ", "MSstatsSampleSize - designSampleSizeClassificationPlot", " "), ncol=1))
-
+    dots <- list(...)
+    if(is.null(dots$log_con)){
+        conn <- .logGeneration()  
+    }else{
+        conn <- dots$log
+    }
+    func <- as.list(sys.call(-1))[[1]]
     ################################################################################
     ## need to simulate at least two different sample sizes
     num_sample_size <- length(data)
 
     if ( num_sample_size < 2 ) {
-
-        processout <- rbind(processout,
-                            "The required input should include at least two simulation results with different sample sizes from simulateDataset and designSampleSizeClassifications. - stop")
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("The required input should include at least two simulation results with different sample sizes from simulateDataset anddesignSampleSizeClassifications.")
+        .status("ERROR: The required input should include at least two simulation
+                results with different sample sizes from simulateDataset and
+                designSampleSizeClassifications.", log = con$conn, func = func)
+        stop("The required input should include at least two simulation results 
+             with different sample sizes from simulateDataset and
+             designSampleSizeClassifications.")
     }
 
     ## the number of simulation in data should be equal to the number of list_samples_per_group
     if ( num_sample_size != length(list_samples_per_group) ) {
-
-        processout <- rbind(processout,
-                            "The number of simulation in the input of designSampleSizeClassificationPlot should be equal to the number of list_samples_per_group. - stop")
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("The number of simulation in the input of designSampleSizeClassificationPlot should be equal to the number of list_samples_per_group.")
+        .status("ERROR: The number of simulation in the input should be equal 
+                to the number of list_samples_per_group.", log = conn$con, 
+                func = func)
+        stop("The number of simulation in the input of 
+             designSampleSizeClassificationPlot should be equal to the number 
+             of list_samples_per_group.")
     }
 
 
-    ## !! assumption : multiple simulations came from only different sample sizes
-    ## !! If there are multiple simulation from different protein numbers, the function should be changed.
+    ## TODO assumption : multiple simulations came from only different sample sizes
+    ## TODO If there are multiple simulation from different protein numbers, the function should be changed.
 
     ################################################################################
     ## 1. make the plot for protein importance
@@ -224,10 +224,7 @@ designSampleSizeClassificationPlots <- function(data,
             dev.off()
         }
 
-        processout <- rbind(processout, as.matrix(c(" Drew Protein Importance Plot."), ncol=1))
-        write.table(processout, file=finalfile, row.names=FALSE)
-        message(" Drew Protein Importance Plot.")
-
+        .status("Plotted protein importance", log = con$con, func = func)
     }
 
 
@@ -257,7 +254,8 @@ designSampleSizeClassificationPlots <- function(data,
                 plotfinalfile <- paste0(paste(plotfilenaming, num, sep="-"), ".pdf")
             }
 
-            pdf(plotfinalfile, width=predictive_accuracy_plot_width, height=predictive_accuracy_plot_height)
+            pdf(plotfinalfile, width=predictive_accuracy_plot_width, 
+                height=predictive_accuracy_plot_height)
         }
 
         ## need to update for multiple protein numbers
@@ -268,11 +266,16 @@ designSampleSizeClassificationPlots <- function(data,
         if(any(dydx >= optimal_threshold)){
             optimal_index <- which(dydx >= optimal_threshold)[length(which(dydx >= optimal_threshold))] + 1
             optimal_sample_size_per_group <- sample_size[optimal_index]
-            message(" The optimal sample size for the input dataset for classification problem is ", sample_size[optimal_index], " samples per group!")
-
+            .status(sprintf("The optimal sample size for the input dataset for 
+                            classification problem is %s  samples per group!",
+                            sample_size[optimal_index]), log = conn$con,
+                    func = func)
+            
         } else{
             optimal_sample_size_per_group <- sample_size[1]
-            message(" The optimal sample size for the input dataset for classification problem is ", sample_size[1], " samples per group!")
+            .status(sprintf("The optimal sample size for the input dataset for 
+                            classification problem is %s  samples per group!",
+                            sample_size[1]), log = conn$con, func = func)
         }
 
         # # boxplot with numeric x-axis
@@ -306,13 +309,11 @@ designSampleSizeClassificationPlots <- function(data,
         if (address != FALSE) {
             dev.off()
         }
-
-        processout <- rbind(processout, as.matrix(c(" Drew Predictive Accuracy Plot."), ncol=1))
-        write.table(processout, file=finalfile, row.names=FALSE)
-        message(" Drew Predictive Accuracy Plot.")
-
+        .status("Plotted accuracy plot", log = conn$con,
+                func = func)
     }
-
+    close(conn$con)
+    
     return(optimal_sample_size_per_group)
 
 }

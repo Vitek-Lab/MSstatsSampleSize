@@ -116,21 +116,16 @@ simulateDataset <- function(data,
                             protein_number = 1000,
                             samples_per_group = 50,
                             simulate_validation = FALSE,
-                            valid_samples_per_group = 50) {
-
+                            valid_samples_per_group = 50,...) {
+    
+    ## Generate Log connection and file
+    con <- .logGeneration()
     ## Estimate the mean abundance and variance of each protein in each phenotype group
-    parameters <- estimateVar(data, annotation)
-
+    parameters <- estimateVar(data, annotation, file_conn = con$con)
+    con <- .logGeneration(file = con$file)
     ###############################################################################
-    ## log file
-    ## save process output in each step
-    loginfo <- .logGeneration()
-    finalfile <- loginfo$finalfile
-    processout <- loginfo$processout
-
-    processout <- rbind(processout,
-                        as.matrix(c(" ", " ", "MSstatsSampleSize - simulateDataset function", " "), ncol=1))
-
+    .status("MSstatsSampleSize - simulateDataset function", log = con$con,
+            func = "simulateDataset",...)
 
     ###############################################################################
     ## Input and option checking
@@ -142,74 +137,66 @@ simulateDataset <- function(data,
     ## 2. check input for option
     ## 2.1 number of simulation : any lower limit?
     if (num_simulations < 10) {
-        processout <- rbind(processout, c(paste0("ERROR : num_simulation =", num_simulations, ", which is smaller than 10. - stop")))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("Please use more than 10 simulations. \n")
+        .status(sprintf("Error: num_simulation = %s which is smaller than 10.",
+                        num_simulations), log = con$con, func = "simulateDataset", ...)
+        stop("Please use more than 10 simulations.")
     }
-
-    processout <- rbind(processout, c(paste0("Number of simulation = ", num_simulations)))
-    write.table(processout, file=finalfile, row.names=FALSE)
-
+    
+    .status(sprintf("Number of Simulations = %s", num_simulations),
+            log = con$con, func = "simulateDataset", ...)
 
     ## 2.2 expected_FC and list_diff_proteins
     if ( !is.element("data", expected_FC) & !is.element(1, expected_FC) ) {
-        processout <- rbind(processout, c("ERROR : expected_FC should be `data` or a vector including 1. Please check it."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("expected_FC should be `data` or a vector including 1. Please check it. \n")
+        .status("ERROR : expected_FC should be `data` or a vector including 1. Please check it.",
+                log = con$con, func = "simulateDataset", ...)
+        stop("expected_FC should be `data` or a vector including 1. Please check it.")
     }
 
     if(!is.element("data", expected_FC)){
-        processout <- rbind(processout, paste0(paste0("expected_FC = ", expected_FC), collapse=","))
-        write.table(processout, file=finalfile, row.names=FALSE)
+        .status(sprintf("expected_FC = %s", expected_FC), log = con$con, func = "simulateDataset", ...)
     }
 
 
     ## 2.3 list_diff_proteins
     if ( is.numeric(expected_FC) & is.null(list_diff_proteins) ) {
-        processout <- rbind(processout, c("ERROR : list_diff_proteins are required for predefined expected_FC. Please provide the vector for list_diff_proteins."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("list_diff_proteins are required for predefined expected_FC. Please provide the vector for list_diff_proteins. \n")
+        .status("list_diff_proteins are required for predefined expected_FC. 
+                Please provide the vector for list_diff_proteins.",
+                log = con$con, func = "simulateDataset", ...)
+        stop("list_diff_proteins are required for predefined expected_FC. 
+             Please provide the vector for list_diff_proteins.")
     }
 
     if(!is.element("data", expected_FC)){
-        processout <- rbind(processout, paste0("list_diff_proteins = ", paste0(list_diff_proteins, collapse=",")))
-        write.table(processout, file=finalfile, row.names=FALSE)
+        .status(sprintf("list_diff_proteins = (%s)", 
+                        paste(list_diff_proteins, collapse = ", ")), 
+                log = con$con, func = "simulateDataset", ...)
     }
 
 
     ## 2.4 select_simulated_proteins
     if ( !is.element("proportion", select_simulated_proteins) & !is.element("number", select_simulated_proteins) ) {
-        processout <- rbind(processout, c("ERROR : select_simulated_protein should be either `proportion` or `number`. Please check it."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("select_simulated_protein should be either `proportion` or `number`. Please check it. \n")
+        .status("select_simulated_protein should be either `proportion` or `number`
+                . Please check it.", log = con$con, func = "simulateDataset", ...)
+        stop("select_simulated_protein should be either `proportion` or `number`. Please check it.")
     }
-
-    processout <- rbind(processout, c(paste0("select_simulated_proteins = ", select_simulated_proteins)))
-    write.table(processout, file=finalfile, row.names=FALSE)
-
+    
+    .status(sprintf("select_simulated_proteins = %s", select_simulated_proteins)
+            , log = con$con, func = "simulateDataset", ...)
 
     ## 2.5 protein_proportion
     if(is.element("proportion", select_simulated_proteins)){
         if (is.null(protein_proportion) ) {
-            processout <- rbind(processout, c("ERROR : protein_proportion is required for select_simulated_protein=`proportion`. Please provide the value for protein_proportion."))
-            write.table(processout, file=finalfile, row.names=FALSE)
-
-            stop("protein_proportion is required for select_simulated_protein=`proportion`. Please provide the value for protein_proportion. \n")
+            .status("protein_proportion is required for select_simulated_protein=`proportion`. Please provide the value for protein_proportion.",
+                    log = con$con, func = "simulateDataset", ...)
+            stop("protein_proportion is required for select_simulated_protein=`proportion`. Please provide the value for protein_proportion.")
 
         } else if ( protein_proportion < 0 | protein_proportion > 1 ) {
-            processout <- rbind(processout, c("ERROR : protein_proportion should be between 0 and 1. Please check the value for protein_proportion."))
-            write.table(processout, file=finalfile, row.names=FALSE)
-
-            stop("protein_proportion should be between 0 and 1. Please check the value for protein_proportion. \n")
+            .status("protein_proportion should be between 0 and 1. Please check the value for protein_proportion.",
+                    log = con$con, func = "simulateDataset", ...)
+            stop("protein_proportion should be between 0 and 1. Please check the value for protein_proportion.")
         }
-
-        processout <- rbind(processout, c(paste0("protein_proportion = ", protein_proportion)))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
+        .status(sprintf("protein_proportion = %s", protein_proportion),
+                log = con$con, func = "simulateDataset", ...)
     }
 
 
@@ -218,75 +205,59 @@ simulateDataset <- function(data,
 
     if(is.element("number", select_simulated_proteins)){
         if (is.null(protein_number) ) {
-            processout <- rbind(processout, c("ERROR : protein_number is required for select_simulated_protein=`number`. Please provide the value for protein_number."))
-            write.table(processout, file=finalfile, row.names=FALSE)
-
-            stop("protein_number is required for select_simulated_protein=`number`. Please provide the value for protein_number. \n")
+            .status("ERROR: protein_number is required for select_simulated_protein=`number`. Please provide the value for protein_number."
+                    , log = con$con, func = "simulateDataset", ...)
+            stop("protein_number is required for select_simulated_protein=`number`. Please provide the value for protein_number.")
 
         } else if ( protein_number < 0 | protein_number > num_total_proteins ) {
-            processout <- rbind(processout,
-                                c(paste0("ERROR : protein_number should be between 0 and the total number of protein(", num_total_proteins,
-                                         "). Please check the value for protein_number.")))
-            write.table(processout, file=finalfile, row.names=FALSE)
-
+            .status(sprintf("protein_number should be between 0 and the total number of protein (%s)",
+                            num_total_proteins), log = con$con, func = "simulateDataset", ...)
             stop(paste0("protein_number should be between 0 and the total number of protein(", num_total_proteins,
-                        "). Please check the value for protein_number. \n"))
+                        "). Please check the value for protein_number."))
         }
-
-        processout <- rbind(processout, c(paste0("protein_number = ", protein_number)))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
+        .status(sprintf("protein_number = %s", protein_number),
+                log = con$con, func = "simulateDataset", ...)
     }
 
     ## 2.7 samples_per_group
     if ( !is.numeric(samples_per_group) ) {
-        processout <- rbind(processout, c("ERROR : sample_per_group should be numeric. Please provide the numeric value for samples_per_group."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("sample_per_group should be numeric. Please provide the numeric value for samples_per_group. \n")
+        .status("ERROR : sample_per_group should be numeric. Please provide the numeric value for samples_per_group.",
+                log = con$con, func = "simulateDataset", ...)
+        stop("sample_per_group should be numeric. Please provide the numeric value for samples_per_group.")
 
     } else if ( samples_per_group%%1 != 0 ) { ## not integer, then round
 
         samples_per_group <- round(samples_per_group)
 
-        processout <- rbind(processout, c("NOTE : samples_per_group should be integer. Rounded samples_per_group will be used."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        message("NOTE : samples_per_group should be integer. Rounded samples_per_group will be used.")
+        .status("NOTE : samples_per_group should be integer. Rounded samples_per_group will be used.",
+                log = con$con, func = "simulateDataset", ...)
     }
 
-    processout <- rbind(processout, c(paste0("samples_per_group = ", samples_per_group)))
-    write.table(processout, file=finalfile, row.names=FALSE)
+    .status(sprintf("samples_per_group = (%s)", samples_per_group),
+            log = con$con, func = "simulateDataset", ...)
 
 
     ## 2.8 simulated value
     if ( !is.logical(simulate_validation) ) {
-        processout <- rbind(processout, c("ERROR : simulate_validation should be logical. Please provide either TRUE or FALSE for simulate_validation."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("simulate_validation should be logical. Please provide either TRUE or FALSE for simulate_validation. \n")
+        .status("ERROR : simulate_validation should be logical. Please provide either TRUE or FALSE for simulate_validation.",
+                log = con$con, func = "simulateDataset", ...)
+        stop("simulate_validation should be logical. Please provide either TRUE or FALSE for simulate_validation.")
     }
 
-    processout <- rbind(processout, c(paste0("simulate_validation = ", simulate_validation)))
-    write.table(processout, file=finalfile, row.names=FALSE)
-
+    .status(sprintf("simulate_validation = %s", simulate_validation),
+            log = con$con, func = "simulateDataset", ...)
 
     ## 2.9 valid_samples_per_group
     if ( simulate_validation & (is.null(valid_samples_per_group) | !is.numeric(valid_samples_per_group)) ) {
-        processout <- rbind(processout, c("ERROR : valid_samples_per_group is required for simulate_validation=TRUE. Please provide the numeric value for valid_samples_per_group."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("valid_samples_per_group is required for simulate_validation=TRUE. Please provide the numeric value for valid_samples_per_group. \n")
+        .status("ERROR : valid_samples_per_group is required for simulate_validation=TRUE. Please provide the numeric value for valid_samples_per_group.",
+                log = con$con, func = "simulateDataset", ...)
+        stop("valid_samples_per_group is required for simulate_validation=TRUE. Please provide the numeric value for valid_samples_per_group.")
     }
-
-    processout <- rbind(processout, c(paste0("valid_samples_per_group = ", valid_samples_per_group)))
-    write.table(processout, file=finalfile, row.names=FALSE)
-
+    .status(sprintf("valid_samples_per_group = (%s)", valid_samples_per_group),
+            log = con$con,func = "simulateDataset", ...)
 
     ###############################################################################
-    processout <- rbind(processout, c("Preparing simulation...."))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" Preparing simulation...")
+    .status("Preparing simulation", log = con$con, func = "simulateDataset", ...)
 
     ## Prepare the parameters for simulation experiment
     mu <- parameters$mu
@@ -323,11 +294,9 @@ simulateDataset <- function(data,
     num_samples <- rep(samples_per_group, ngroup)
     names(num_samples) <- unique(group)
     train_size <- samples_per_group * ngroup
-
-    processout <- rbind(processout, c(paste0(" Size of training data to simulate: ", train_size)))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" Size of training data to simulate: ", train_size)
-
+    .status(sprintf("Size of training data to simulate: %s", train_size),
+            log = con$con, func = "simulateDataset", ...)
+    
     ## Generate the protein number to simulate
     # 1. based on proportion
     if (select_simulated_proteins == "proportion") {
@@ -361,19 +330,15 @@ simulateDataset <- function(data,
         valid_Y <- as.factor(group)
     }
 
-    processout <- rbind(processout, c(paste0(" Number of proteins to simulate: ", protein_num)))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" Number of proteins to simulate: ", protein_num)
-
-    processout <- rbind(processout, c(" Start to run the simulation..."))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" Start to run the simulation...")
+    .status(sprintf("Number of proteins to simulate:%s ", protein_num),
+            log = con$con, func = "simulateDataset", ...)
+    .status("Start to run the simulation", log = con$con, func = "simulateDataset", ...)
 
     simulation_train_Xs <- list()
     simulation_train_Ys <- list()
 
     for (i in seq_len(num_simulations)) { ## Number of simulations
-        message("  Simulation: ", i)
+        .status(sprintf("Simulation: %s", i), log = con$con, func = "simulateDataset", ...)
 
         ## simulate samples in the training data
         train <- .sampleSimulation(m = samples_per_group,
@@ -386,9 +351,8 @@ simulateDataset <- function(data,
         simulation_train_Ys[[paste("Simulation", i, sep="")]] <- Y
     }
 
-    processout <- rbind(processout, c(" Simulation completed."))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" Simulation completed.")
+    .status("Simulation completed", log = con$con, func = "simulateDataset", ...)
+    close(con$con)
 
     return(list(num_proteins = protein_num, # number of proteins
                 num_samples = num_samples, # number of samples per group

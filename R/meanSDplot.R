@@ -42,7 +42,7 @@ meanSDplot <- function(data,
                        ylimUp = 3,
                        height = 4,
                        width = 4,
-                       address = "") {
+                       address = "", ...) {
 
 
     ..density.. <-  freq <- x <- y <- NULL
@@ -50,17 +50,13 @@ meanSDplot <- function(data,
     ###############################################################################
     ## log file
     ## save process output in each step
-    loginfo <- .logGeneration()
-    finalfile <- loginfo$finalfile
-    processout <- loginfo$processout
-
-    processout <- rbind(processout,
-                        as.matrix(c(" ", " ", "MSstatsSampleSize - meanSDplot", " "), ncol=1))
-
-
-    message("Drew the Mean-SD plot for simulation!")
-    processout <- rbind(processout, as.matrix(c("Drew the Mean-SD plot for simulation."), ncol=1))
-    write.table(processout, file=finalfile, row.names=FALSE)
+    dots <- list(...)
+    if(is.null(dots$log_conn)){
+        conn <- .logGeneration()  
+    }else{
+        conn <- dots$log_conn
+    }
+    func <- as.list(sys.call(-1))[[1]]
 
     ###############################################################################
 
@@ -106,11 +102,11 @@ meanSDplot <- function(data,
             legend.position = "none")
 
     print(meansdplot)
-
+    .status("Plotted meanSD plot", log = conn$con, func = func)
+    
     if (address != FALSE) {
         dev.off()
     }
-
 
 }
 

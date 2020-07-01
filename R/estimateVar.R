@@ -37,42 +37,27 @@
 #' @importFrom stats lm coef anova
 #'
 estimateVar <- function(data,
-                        annotation) {
+                        annotation, ...) {
 
     ###############################################################################
     ## log file
     ## save process output in each step
-    allfiles <- list.files()
-
-    num <- 0
-    filenaming <- "MSstatsSampleSize-ProgressReport"
-    finalfile <- "MSstatsSampleSize-ProgressReport.log"
-
-    while(is.element(finalfile, allfiles)) {
-        num <- num + 1
-        finalfile <- paste0(paste(filenaming, num, sep="-"), ".log")
+    dots <- list(...)
+    if(is.null(dots$log_conn)){
+        conn <- .logGeneration()  
+    }else{
+        conn <- dots$log_conn
     }
-
-    session <- sessionInfo()
-    sink("sessionInfo.txt")
-    print(session)
-    sink()
-
-    processout <- as.matrix(read.table("sessionInfo.txt", header=TRUE, sep="\t"))
-    write.table(processout, file=finalfile, row.names=FALSE)
-
-    processout <- rbind(processout, as.matrix(c(" "," ","MSstatsSampleSize - estimateVar function"," "), ncol=1))
-
+    func <- as.list(sys.call(-1))[[1]]
+    .status("Estimating Variance", log = conn$con, func = func, ...)
+    
     ###############################################################################
     ## input checking
     if(anyDuplicated(colnames(data)) != 0){
-        processout <- rbind(processout, c("ERROR: Please check the column names of 'data'.
-                                          There are duplicated 'Run'."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
+        .status("ERROR: Please check the column names of 'data'. 
+                There are duplicated 'Run'", log = conn$con, func = func, ...)
         stop("Please check the column names of 'data'.
-             There are duplicated 'Run'. \n")
-
+             There are duplicated 'Run'.")
     }
 
     ## check whether annotation has requried columns
@@ -81,41 +66,35 @@ estimateVar <- function(data,
     if (!all(required.annotation %in% colnames(annotation))) {
 
         missedAnnotation <- which(!(required.annotation %in% colnames(annotation)))
-
-        processout <- rbind(processout, c(paste(toString(required.annotation[missedAnnotation]),
-                                              "is not provided in Annotation. Please check the annotation file.")))
-        write.table(processout, file=finalfile, row.names=FALSE)
+        .status(sprintf("%s is not provided in Annotation. Please check the annotation file.",
+                        toString(required.annotation[missedAnnotation])),
+                log = conn$con, func = func, ...)
 
         stop(paste(toString(required.annotation[missedAnnotation]),
-                   "is not provided in Annotation. Please check the annotation file. \n"))
+                   "is not provided in Annotation. Please check the annotation file."))
     }
 
     if (!all(annotation$Run %in% colnames(data)) &
         nrow(annotation) == ncol(data)) {
-        processout <- rbind(processout, c("ERROR: Please check the annotation file.
-                                          'Run' must match with the column names of 'data'."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
+        .status("ERROR: Please check the annotation file.
+                'Run' must match with the column names of 'data'.",
+                log = conn$con,func = func, ...)
         stop("Please check the annotation file.
-             'Run' must match with the column names of 'data'. \n")
-
+             'Run' must match with the column names of 'data'.")
     }
 
     if (length(unique(annotation$Condition)) < 2){
-        processout <- rbind(processout, c("ERROR: Need at least two conditions to do simulation."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("Need at least two conditions to do simulation. \n")
-
+        .status("ERROR: Need at least two conditions to do simulation.",
+                log = conn$con, func = func, ...)
+        stop("Need at least two conditions to do simulation.")
     }
 
     if (any(is.na(annotation$Run)) |
         any(is.na(annotation$BioReplicate))|
         any(is.na(annotation$Condition))){
-        processout <- rbind(processout, c("ERROR: NA not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("NA not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion. \n")
+        .status("ERROR: NA not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion.",
+                log = conn$con, func = func, ...)
+        stop("NA not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion.")
     }
 
     ## match between data and annotation
@@ -123,21 +102,19 @@ estimateVar <- function(data,
     group <- as.factor(as.character(annotation$Condition))
 
     if (nrow(data) == 0) {
-        processout <- rbind(processout, c("ERROR: Please check the column names of data and Run in annotation."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
+        .status("ERROR: Please check the column names of data and Run in annotation.",
+                log = conn$con, func = func, ...)
         stop("Please check the column names of data and Run in annotation. \n")
     }
 
-    processout <- rbind(processout, c(paste0("Summary : number of proteins in the input data = ", nrow(data) )))
-    processout <- rbind(processout, c(paste0("Summary : number of samples in the input data = ", ncol(data) )))
-    write.table(processout, file=finalfile, row.names=FALSE)
-
+    .status(sprintf("Summary : number of proteins in the input data = %s",
+                    nrow(data)), log = conn$con, func = func)
+    .status(sprintf("Summary : number of samples in the input data = %s",
+                    ncol(data)), log = conn$con, func = func)
+    
     ###############################################################################
-    processout <- rbind(processout, c("Preparing variance analysis..."))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" Preparing variance analysis...")
-
+    .status("Preparing variance analysis", log = conn$con, 
+            func = func)
     ## unique groups
     groups <- as.character(unique(group))
     ngroup <- length(groups)
@@ -188,10 +165,9 @@ estimateVar <- function(data,
     colnames(GroupMean) <- groups
     names(SampleMean) <- Proteins
 
-    processout <- rbind(processout, c(" Variance analysis completed."))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" Variance analysis completed.")
-
+    .status("Variance analysis completed.", log = conn$con, func = func)
+    close(conn$con)
+    
     return(list(model = Models,
                 protein = Proteins,
                 promean = SampleMean,

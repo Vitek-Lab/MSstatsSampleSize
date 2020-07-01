@@ -48,7 +48,7 @@
 #' @param data protein abundance data for one protein.
 #' @return Imputed protein abundance data
 #' @keywords internal
-.randomImputation <- function (data){
+.randomImputation <- function(data){
 
     missing <- is.na(data) # count missing values
     n.missing <- sum(missing)
@@ -66,41 +66,24 @@
 #' @return \emph{finalfile} The log file name
 #' @return \emph{processout} The current log information
 #' @keywords internal
-.logGeneration <- function (){
-
-    allfiles <- list.files()
-    filenaming <- "MSstatsSampleSize-ProgressReport"
-
-    if (length(grep(filenaming, allfiles)) == 0) {
-
-        finalfile <- "MSstatsSampleSize-ProgressReport.log"
-
-        session <- sessionInfo()
-        sink("sessionInfo.txt")
-        print(session)
-        sink()
-
-        processout <- as.matrix(read.table("sessionInfo.txt", header=TRUE, sep="\t"))
-
-    } else {
-
-        num <- 0
-        finalfile <- "MSstatsSampleSize-ProgressReport.log"
-
-        while (is.element(finalfile, allfiles)) {
-            num <- num + 1
-            lastfilename <- finalfile ## in order to rea
-            finalfile <- paste0(paste(filenaming, num, sep="-"), ".log")
-        }
-
-        finalfile <- lastfilename
-        processout <- as.matrix(read.table(finalfile, header=TRUE, sep="\t"))
+.logGeneration <- function(...){
+    dots <- list(...)
+    if(is.null(dots$file)){
+        LOG_DIR <- file.path(getwd(),'logs')
+        dir.create(LOG_DIR, showWarnings = F)
+        FILE <- sprintf("MSstatsSSE_Log_%s.Rout", 
+                        format(Sys.time(),"%Y%m%d%H%M%S"))
+        assign("LOG_FILE", file.path(LOG_DIR, FILE))
+        assign("FILE_CONN", file(LOG_FILE, open='a'))
+        writeLines(capture.output(sessionInfo()), FILE_CONN)
+        writeLines("\n\n ############## LOG ############# \n\n", FILE_CONN)
+    } else{
+        FILE_CONN <- file(dots$file, open = 'a')
+        LOG_FILE <- dots$file
     }
-
-    return(list(finalfile = finalfile,
-                processout = processout))
-
+    return(list(con = FILE_CONN, file = LOG_FILE))
 }
+    
 
 
 #' For each simulated dataset, calculate predictive accuracy on validation set
@@ -185,3 +168,27 @@
 
 }
 
+
+
+#' Fit a classification model
+#'
+#' @param detail Details of the log entry
+#' @param value value ranging from 0 - 1 for progress bars used only with shiny
+#' @param session A session object for shiny operations
+#' @return Console logging
+#' @keywords internal
+.status <- function(detail, ...){
+    
+    dots <- list(...)
+    dots$func <- ifelse(is.null(dots$func),"'__'", dots$func)
+    mess <- sprintf("%s : Function_%s__Detail__%s", Sys.time(), dots$func, detail)
+    if(!is.null(dots$log)){
+        sink(dots$log, type="message")
+        message(mess)
+        sink(type="message")
+    }
+    if(!is.null(dots$session) && !is.null(dots$value))
+        shiny::setProgress(value = dots$value, message = "Progress:", detail = detail,
+                           session = dots$session)
+    message(Sys.time(),": ",mess,"...")
+}

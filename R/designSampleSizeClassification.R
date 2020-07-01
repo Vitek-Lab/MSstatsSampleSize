@@ -88,69 +88,68 @@
 designSampleSizeClassification <- function(simulations,
                                            classifier = "rf",
                                            top_K = 10,
-                                           parallel = FALSE) {
+                                           parallel = FALSE, ...) {
 
     ###############################################################################
     ## log file
     ## save process output in each step
-    loginfo <- .logGeneration()
-    finalfile <- loginfo$finalfile
-    processout <- loginfo$processout
-
-    processout <- rbind(processout,
-                        as.matrix(c(" ", " ", "MSstatsSampleSize - designSampleSizeClassification function", " "), ncol=1))
+    dots <- list(...)
+    if(is.null(dots$log_conn)){
+        conn <- .logGeneration()  
+    }else{
+        conn <- dots$log_conn
+    }
+    func <- as.list(sys.call(-1))[[1]]
+    .status("", log = con$con, func = func)
 
     ###############################################################################
     ## Input and option checking
 
     ## 1. input  should be the output of SimulateDataset function
-    if ( !is.element('simulation_train_Xs', names(simulations)) | !is.element('simulation_train_Ys', names(simulations)) ) {
-
-        processout <- rbind(processout,
-                            "The required input - simulations : did not process from SimulateDataset function. - stop")
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("Please use 'SimulateDataset' first. Then use output of SimulateDataset function as input in designSampleSizeClassification.")
+    if ( !is.element('simulation_train_Xs', names(simulations)) | 
+         !is.element('simulation_train_Ys', names(simulations)) ) {
+        
+        .status("ERROR: The required input - simulations : did not process from 
+                simulateDataset function.", log = con$con, 
+                func = func)
+        stop("Please use 'SimulateDataset' first. Then use output of 
+             simulateDataset function as input in designSampleSizeClassification.")
     }
 
     ## 2. input for classifier option
     if ( !any(classifier == c('rf', 'nnet', 'svmLinear', 'logreg', 'naive_bayes')) ) {
-        processout <- rbind(processout, c("ERROR: `classifier` should be one of 'rf', 'nnet', 'svmLinear', 'logreg', and 'naive_bayes'. Please check it."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("`classifier` should be one of 'rf', 'nnet', 'svmLinear', 'logreg', and 'naive_bayes'. Please check it. \n")
+       .status("ERROR: `classifier` should be one of 'rf', 'nnet', 'svmLinear', 
+               'logreg', and 'naive_bayes'. Please check it.",
+               log = con$con, func = func)
+        stop("`classifier` should be one of 'rf', 'nnet', 'svmLinear', 'logreg',
+             and 'naive_bayes'. Please check it.")
     }
-    processout <- rbind(processout, c(paste0("classifier : ", classifier)))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" classifier: ", classifier)
+    .status(sprintf("classifier : %s", classifier), log = con$con, 
+            func = func)
 
     ## 3. input for top_K option
     if (is.null(top_K) ) {
-        processout <- rbind(processout, c("ERROR : top_K is required. Please provide the value for top_K."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
+        .status("ERROR : top_K is required. Please provide the value for top_K.",
+                log = con$con, func = func)
         stop("top_K is required. Please provide the value for top_K. \n")
 
     } else if ( top_K < 0 | top_K > simulations$num_proteins ) {
-        processout <- rbind(processout,
-                            c(paste0("ERROR : top_K should be between 0 and the total number of protein(", simulations$num_proteins,
-                                     "). Please check the value for top_K")))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop(paste0("top_K should be between 0 and the total number of protein(", simulations$num_proteins,
-                    "). Please check the value for top_K \n"))
+        .status(sprintf("ERROR : top_K should be between 0 and the total number 
+                        of protein(%s) Please check the value for top_K",
+                        simulations$num_proteins), log = con$con, 
+                        func = func)
+        
+        stop(sprintf("top_K should be between 0 and the total number of 
+                     protein (%s).  Please check the value for top_K", 
+                     simulations$num_proteins))
     }
-    processout <- rbind(processout, c(paste0("top_K = ", top_K)))
-    write.table(processout, file=finalfile, row.names=FALSE)
-
-
+    .status(sprintf("top_K = %s", top_K), log = con$con, func = func)
+    
     ###############################################################################
     ## start to train classifier
 
-    processout <- rbind(processout, c(" Start to train classifier..."))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" Start to train classifier...")
-
+    .status("Start to train classifier...", log = con$con, func = func)
+    
     ## get the validation set for prediction
     iter <- length(simulations$simulation_train_Xs) # number of simulations
     num_proteins <- simulations$num_proteins
@@ -160,23 +159,7 @@ designSampleSizeClassification <- function(simulations,
 
     ## if parallel TRUE,
     if(parallel){
-
-        # ## create cluster for paralleled workflow
-        # message(paste0("Cluster Size: ", threads,"\n"))
-        #
-        # ## allocate resource for parallel computation
-        # param <- SnowParam(workers = threads, type = "SOCK")
-
-        # ## fit the classifier for each simulation dataset
-        # results <- bplapply(1:iter, .classificationPerformance,
-        #                     classifier=classifier,
-        #                     train_x_list = simulations$simulation_train_Xs,
-        #                     train_y_list = simulations$simulation_train_Ys,
-        #                     valid_x = valid_x,
-        #                     valid_y = valid_y,
-        #                     BPPARAM=param,
-        #                     top_K = top_K)
-
+        .status("Using parallel backend", log = con$con, func = func)
         ## fit the classifier for each simulation dataset
         results <- bplapply(seq_len(iter), .classificationPerformance,
                             classifier=classifier,
@@ -187,13 +170,7 @@ designSampleSizeClassification <- function(simulations,
                             top_K = top_K)
 
 
-    } else { ## if parallel FALSE,
-        # ## show progress
-        # pb <- txtProgressBar(max = iter, style = 3)
-        # ## progress
-        # setTxtProgressBar(pb, i)
-        # close(pb)
-
+    } else { 
         ## fit the classifier for each simulation dataset
         results <- lapply(seq_len(iter),
                           .classificationPerformance,
@@ -229,9 +206,8 @@ designSampleSizeClassification <- function(simulations,
     }
 
     ## report the training and validating done
-    processout <- rbind(processout, c(" Finish to train classifier and to check the performance."))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" Finish to train classifier and to check the performance.")
+    .status("Finish to train classifier and to check the performance.", 
+            log = con$con, func = func)
 
     # assign simulation index
     simulation_index <- paste0("simulation", seq_len(iter))
@@ -248,9 +224,9 @@ designSampleSizeClassification <- function(simulations,
     # sort in descending order
     meanFI <- sort(meanFI, decreasing=TRUE)
 
-    processout <- rbind(processout, c(" Report the mean predictive accuracy and mean feature importance."))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" Report the mean predictive accuracy and mean feature importance.")
+    .status("Report the mean predictive accuracy and mean feature importance.",
+            log = con$con, func = func)
+    close(con$con)
 
     return(list(num_proteins = num_proteins, # number of proteins
                 num_samples = num_samples, # number of samples per group

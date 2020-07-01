@@ -67,32 +67,32 @@ designSampleSizePCAplot <- function(simulations,
                                     legend.size = 7,
                                     width = 6,
                                     height = 5,
-                                    address = "") {
+                                    address = "", ...) {
 
     ###############################################################################
     ## log file
     ## save process output in each step
-    loginfo <- .logGeneration()
-    finalfile <- loginfo$finalfile
-    processout <- loginfo$processout
-
-    processout <- rbind(processout,
-                        as.matrix(c(" ", " ", "MSstatsSampleSize - designSampleSizePCAplot", " "), ncol=1))
+    dots <- list(...)
+    if(is.null(dots$log_conn)){
+        conn <- .logGeneration()  
+    }else{
+        conn <- dots$log_conn
+    }
+    func <- as.list(sys.call(-1))[[1]]
 
     ## parameter checking: which.PCA
     if (!(length(which.PCA) == 1 &
         (which.PCA %in% c("all", "data") |
          (startsWith(which.PCA, "simulation"))))) {
 
-        processout <- rbind(processout, c("ERROR : which.PCA should be one of \"all\", \"data\" or \"simulation + index of simulation\" (such as \"simulation1\")."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("which.PCA should be one of \"all\", \"data\" or \"simulation + index of simulation\" (such as \"simulation1\"). \n")
+        .status("ERROR : which.PCA should be one of 'all', 'data' or 
+                'simulation + index of simulation' (such as 'simulation1').")
+        stop("which.PCA should be one of 'all', 'data' or 
+             'simulation + index of simulation' (such as 'simulation1').")
 
     }
 
-    processout <- rbind(processout, c(paste0("which.PCA = ", which.PCA)))
-    write.table(processout, file=finalfile, row.names=FALSE)
+    .status(sprintf("which.PCA = %s", which.PCA), log = conn$con, func = func)
 
     ###############################################################################
     ## number of simulations
@@ -160,10 +160,8 @@ designSampleSizePCAplot <- function(simulations,
 
         print(pcaplot)
 
-        processout <- rbind(processout, as.matrix(c(" Drew the PCA plot for input preliminary dataset "), ncol=1))
-        write.table(processout, file=finalfile, row.names=FALSE)
-        message(" Drew the PCA plot for input preliminary dataset ")
-
+        .status("Drew the PCA plot for input preliminary dataset", log = conn$con,
+                func = func)
     }
 
 
@@ -178,11 +176,13 @@ designSampleSizePCAplot <- function(simulations,
             index <- as.integer(which.PCA)
 
             if(index > iter){
-                processout <- rbind(processout, c(paste0("ERROR: which.PCA should be one of \"all\", \"data\" or \"simulation + index of simulation\".
-                                                         index must be no bigger than ", iter)))
-                write.table(processout, file=finalfile, row.names=FALSE)
+                .status(sprintf("ERROR: which.PCA should be one of 'all', 'data'
+                or 'simulation + index of simulation'. index must be no bigger 
+                                than %s", iter), log = conn$con, func = func)
 
-                stop("which.PCA should be one of \"all\", \"data\" or \"simulation + index of simulation\". index must be no bigger than ", iter)
+                stop("which.PCA should be one of 'all', 'data' or 
+                     'simulation + index of simulation'. index must be no bigger
+                     than", iter)
             }
 
         }
@@ -238,15 +238,14 @@ designSampleSizePCAplot <- function(simulations,
 
             print(pcaplot)
 
-            processout <- rbind(processout, as.matrix(c(paste0(" Drew the PCA plot for simulation ", index[i])), ncol=1))
-            write.table(processout, file=finalfile, row.names=FALSE)
-            message(paste0(" Drew the PCA plot for simulation ", index[i]))
+            .status(sprintf("Drew the PCA plot for simulation %s", index[i]), 
+                    log = conn$con, func = func)
         }
-
+        
     }
-
+    
     if (address != FALSE) {
         dev.off()
     }
-
+    close(conn$con)
 }
