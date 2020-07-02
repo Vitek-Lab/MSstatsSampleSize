@@ -4,7 +4,9 @@
 \name{simulated_datasets}
 \alias{simulated_datasets}
 \title{Example of output from simulateDataset function}
-\format{A list with eight elements}
+\format{
+A list with eight elements
+}
 \usage{
 simulated_datasets
 }

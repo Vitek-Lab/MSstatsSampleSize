@@ -23,13 +23,13 @@ library(MSstatsSampleSize)
 
 This vignette introduces all the functionalities and summarizes their options in MSstatsSampleSize. MSstatsSampleSize requires protein abundances quantified in mass spectrometry runs as a matrix (columns for biological replicates (samples) and rows for proteins) and annotation including Run (Ms runs), biological replicates (samples) and their condition (such as a disease and time points). MSstatsSampleSize includes the following functionalities:
 
-1. `estimateVar`: estimates the variance across biological replicates and MS run for each protein.
+1. `estimateVar`: estimates the mean and variance (standard deviation) for each protein.
 2. `simulateDataset`: simulates data with the given number(s) of biological replicates based on the variance estimation. 
 3. `designSampleSizeClassification` : fit the classification model (five classifier are provided) on each simulation and reports the mean predictive accuracy of the classifier and mean protein importance over multiple iterations of the simulation. The sample size per condition, which generates the largest predictive accuracy, is estimated, while varying the number of biological replicates to simulate. Also, the proteins, which can classify the conditions best, are reported. The reported sample size per condition can be used to design future experiments.
 
 In addition, MSstatsTMT includes the following visualization plots for sample size estimation: 
 
-1. `meanSDplot`: draw the plot for the mean protein abundance vs standard deviation in each condition for the input preliminary dataset. It can exhibit the quality of input data.
+1. `meanSDplot`: draw the plot for the mean protein abundance vs sample standard deviation for the input preliminary dataset. It can exhibit the quality of input data.
 2. `designSampleSizePCAplot`: make PCA plots for the simulated data with certain sample size.
 3. `designSampleSizeHypothesisTestingPlot`: visualize sample size calculation in hypothesis testing, which estimates the minimal required number of replicates under different expected fold changes.
 4. `designSampleSizeClassificationPlots`: visualize sample size calculation in classification, including predictive accuracy plot and protein importance plot for different sample sizes. 
@@ -39,13 +39,14 @@ In addition, MSstatsTMT includes the following visualization plots for sample si
 
 ### 1.1 estimateVar()
 
-The function fits intensity-based linear model on the prelimiary data (Input, here is `data`). This function outputs variance components and mean abundance for each protein.
+The function fits intensity-based linear model on the prelimiary data (Input, here is `data`). This function outputs mean and variance components for each protein.
 
 
 #### Arguments
 
 * `data` : Data matrix with protein abundance. Rows are proteins and columns are Biological replicates or samples.
 * `annotation` : Group information for samples in data. `Run` for MS run, `BioReplicate` for biological subject ID and `Condition` for group information are required. `Run` information should be the same with the column of `data`. Multiple `Run` may come from same `BioReplicate`.
+* `log2Trans` : Logical. If TRUE, the input `data' is log-transformed with base 2. Default is FALSE.
 
 
 #### Example
@@ -69,7 +70,8 @@ head(OV_SRM_train_annotation)
 
 # estimate the mean protein abunadnce and variance in each condition
 variance_estimation <- estimateVar(data = OV_SRM_train, 
-                                   annotation = OV_SRM_train_annotation)
+                                   annotation = OV_SRM_train_annotation,
+                                   log2Trans = FALSE)
 
 # the mean protein abundance in each condition
 head(variance_estimation$mu)
@@ -79,17 +81,20 @@ head(variance_estimation$sigma)
 
 # the mean protein abundance across all the conditions
 head(variance_estimation$promean)
+
+# the standard deviation across all the conditions
+head(variance_estimation$prosd)
 ```
 
 
 ### 1.2 meanSDplot()
 
-This function draws the plot for the mean protein abundance (X-axis) vs standard deviation (Y-axis) in each condition. The `lowess` function is used to fit the LOWESS smoother between meann protein abundance and standard deviation (square root of variance). This function generates one pdf file with mean-SD plot.
+This function draws the plot for the mean protein abundance (X-axis) vs standard deviation (Y-axis). The `lowess` function is used to fit the LOWESS smoother between meann protein abundance and standard deviation (square root of variance). This function generates one pdf file with mean-SD plot.
 
 
 #### Arguments
 
-* `data` : A list with mean protein abundance matrix and standard deviation matrix. It should be the output of `estimateVar` function.
+* `data` : A list with mean protein abundance vector and standard deviation vector. It should be the output of `estimateVar` function.
 * `x.axis.size` : Size of x-axis labeling in Mean-SD Plot. Default is 10.
 * `y.axis.size` : Size of y-axis labels. Default is 10.
 * `smoother_size` : Size of lowess smoother. Default is 1.
@@ -116,35 +121,42 @@ This function simulate datasets with the given numbers of biological replicates 
 
 #### Arguments
 
-* `data` : Protein abundance data matrix. Rows are proteins and columns are biological replicates(samples).
-* `annotation` : Group information for samples in data. `Run` for MS run, `BioReplicate` for biological subject ID and `Condition` for group information are required. `Run` information should be the same with the column of `data`. Multiple `Run` may come from same `BioReplicate`.
-* `num_simulations` :  Number of times to repeat simulation experiments (Number of simulated datasets). Default is 10.
-* `expected_FC` :  Expected fold change of proteins. The first option (Default) is "data", indicating the fold changes are directly estimated from the input `data`. The second option is a vector with predefined fold changes of listed proteins. The vector names must match with the unique information of Condition in `annotation`. One group must be selected as a baseline and has fold change 1 in the vector. The user should provide list_diff_proteins, which users expect to have the fold changes greater than 1. Other proteins that are not available in `list_diff_proteins` will be expected to have fold change = 1.
-* `list_diff_proteins` : Vector of proteins names which are set to have fold changes greater than 1 between conditions. If user selected `expected_FC= "data" `, this should be NULL. 
-* `select_simulated_proteins` :  The standard to select the simulated proteins among data. It can be 1) "proportion" of total number of proteins in the input data or 2) "number" to specify the number of proteins. "proportion" indicates that user should provide the value for `protein_proportion` option. "number" indicates that user should provide the value for `protein_number` option.
-* `protein_proportion` :  Proportion of total number of proteins in the input data to simulate. For example, input data has 1,000 proteins and user selects `protein_proportion=0.1`. Proteins are ranked in decreasing order based on their mean abundance across all the samples. Then, 1,000 * 0.1 = 100 proteins will be selected from the top list to simulate. Default is 1.0, which meaans that all the proteins will be used.
-* `protein_number` :  Number of proteins to simulate. For example, `protein_number=1000`. Proteins are ranked in decreasing order based on their mean abundance across all the samples and top `protein_number` proteins will be selected to simulate. Default is 1000. 
+* `data` : Protein abundance data matrix. Rows are proteins and columns are biological replicates (samples).
+* `annotation` : Group information for samples in data.m`Run' for MS run, `BioReplicate' for biological subject ID and `Condition' for group information are required. `Run' information should be the same with the column of `data'. Multiple `Run' may come from same `BioReplicate'.
+* `log2Trans` : Default is FALSE. If TRUE, the input `data' is log-transformed with base 2.
+* `num_simulations` : Number of times to repeat simulation experiments (Number of simulated datasets). Default is 10.
 * `samples_per_group` : Number of samples per group to simulate. Default is 50.
-* `simulate_validation` : Default is FALSE. If TRUE, simulate the validation set; otherwise, the input `data` will be used as the validation set.
-* `valid_samples_per_group` : Number of validation samples per group to simulate. This option works only when user selects `simulate_validation=TRUE`. Default is 50.
+* `protein_rank` : The standard to rank the proteins in the input `data'. It can be 1) "mean" of protein abundances over all the samples or 2) "sd" (standard deviation) of protein abundances over all the samples or 3) the "combined" of mean abundance and standard deviation.
+The proteins in the input `data' are ranked based on `protein_rank' and the user can select a subset of proteins to simulate.
+* `protein_select` : select proteins with "low" or "high" mean abundance or standard deviation (variance) or their combination to simulate. If `protein_order = "mean"' or protein_order = "sd"', `protein_select' should be "low" or "high". Default is "high", indicating high abundance or standard deviation proteins are selected to simulate.
+If `protein_order = "combined"', `protein_select' has two elements. The first element corrresponds to the mean abundance. The second element corrresponds to the standard deviation (variance). Default is c("high", "low") (select proteins with high abundance and low variance).
+* `protein_quantile_cutoff` : Quantile cutoff(s) for selecting protiens to simulate. For example, when `protein_rank="mean"', and `protein_select="high"', `protein_quantile_cutoff=0.1' Proteins are ranked based on their mean abundance across all the samples. Then, the top 10% highest abundant proteins are selected to simulate. Default is 0.0, which means that all the proteins are used. If `protein_rank = "combined"', `protein_quantile_cutoff'` has two cutoffs. The first element corrresponds to the cutoff for mean abundance. The second element corrresponds to the cutoff for the standard deviation (variance). Default is c(0.0, 1.0), which means that all the proteins will be used.
+* `expected_FC` : Expected fold change of proteins. The first option (Default) is "data", indicating the fold changes are directly estimated from the input `data'. The second option is a vector with predefined fold changes of listed proteins. The vector names must match with the unique information of Condition in `annotation'. One group must be selected as a baseline and has fold change 1 in the vector. The user should provide list_diff_proteins, which users expect to have the fold changes greater than 1. Other proteins that are not available in `list_diff_proteins' will be expected to have fold change = 1
+* `list_diff_proteins` : Vector of proteins names which are set to have fold changes greater than 1 between conditions. If user selected `expected_FC= "data" ', this should be NULL.
+* `simulate_validation` : Default is FALSE. If TRUE, simulate the validation set; otherwise, the input `data' will be used as the validation set.
+* `valid_samples_per_group` : Number of validation samples per group to simulate. This option works only when user selects `simulate_validation=TRUE'. Default is 50.
+
 
 #### Example
 
 ```{r message = FALSE , warning = FALSE}
 # expected_FC = "data": fold change estimated from OV_SRM_train
-# select_simulated_proteins = "proportion": select the simulated proteins based on the proportion of total proteins
+# protein_rank = "mean", protein_select = "high", and protein_quantile_cutoff = 0.0:
+# select the proteins with high mean abundance based on the protein_quantile_cutoff
 # simulate_valid = FALSE: use input OV_SRM_train as validation set
 simulated_datasets <- simulateDataset(data = OV_SRM_train,
                                       annotation = OV_SRM_train_annotation,
+                                      log2Trans = FALSE,
                                       num_simulations = 10, # simulate 10 times
-                                      expected_FC = "data", 
-                                      list_diff_proteins =  NULL,
-                                      select_simulated_proteins = "proportion",
-                                      protein_proportion = 1.0,
-                                      protein_number = 1000,
                                       samples_per_group = 50, # 50 samples per condition
-                                      simulate_validation = FALSE, 
-                                      valid_samples_per_group = 50)
+                                      protein_rank = "mean",
+                                      protein_select = "high",
+                                      protein_quantile_cutoff = 0.0,
+                                      expected_FC = "data",
+                                      list_diff_proteins =  NULL,
+                                      simulate_validation = FALSE,
+                                       valid_samples_per_group = 50)
+
 ```
 
 Explore the output from `simulateDataset` function
@@ -176,15 +188,17 @@ set.seed(1212)
 diff_proteins <- sample(rownames(OV_SRM_train), 20)
 simualted_datasets_predefined_FC <- simulateDataset(data = OV_SRM_train,
                                       annotation = OV_SRM_train_annotation,
+                                      log2Trans = FALSE,
                                       num_simulations = 10, # simulate 10 times
+                                      samples_per_group = 50, # 50 samples per condition
+                                      protein_rank = "mean",
+                                      protein_select = "high",
+                                      protein_quantile_cutoff = 0.0,
                                       expected_FC = expected_FC,
                                       list_diff_proteins =  diff_proteins,
-                                      select_simulated_proteins = "proportion",
-                                      protein_proportion = 1.0,
-                                      protein_number = 1000,
-                                      samples_per_group = 50, # 50 samples per condition
                                       simulate_validation = FALSE,
-                                      valid_samples_per_group = 50)
+                                       valid_samples_per_group = 50)
+
 
 ```
 
@@ -292,16 +306,17 @@ multiple_sample_sizes <- list()
 for(i in seq_along(list_samples_per_group)){
     # run simulation for each sample size
     simulated_datasets <- simulateDataset(data = OV_SRM_train,
-                                      annotation = OV_SRM_train_annotation,
-                                      num_simulations = 10, # simulate 10 times
-                                      expected_FC = "data", 
-                                      list_diff_proteins =  NULL,
-                                      select_simulated_proteins = "proportion",
-                                      protein_proportion = 1.0,
-                                      protein_number = 1000,
-                                      samples_per_group = list_samples_per_group[i],
-                                      simulate_valid = FALSE, 
-                                      valid_samples_per_group = 50)
+                                          annotation = OV_SRM_train_annotation,
+                                          log2Trans = FALSE,
+                                          num_simulations = 10, # simulate 10 times
+                                          samples_per_group = list_samples_per_group[i],
+                                          protein_rank = "mean",
+                                          protein_select = "high",
+                                          protein_quantile_cutoff = 0.0,
+                                          expected_FC = "data",
+                                          list_diff_proteins =  NULL,
+                                          simulate_valid = FALSE,
+                                          valid_samples_per_group = 50)
 
     # run classification performance estimation for each sample size
     res <- designSampleSizeClassification(simulations = simualted_datasets,
@@ -328,12 +343,13 @@ The function fits intensity-based linear model on the input `data`. Then it uses
 * `data` : Protein abundance data matrix.
 Rows are proteins and columns are biological replicates (samples).
 * `annotation` : Group information for samples in data. `Run` for MS run, `BioReplicate` for biological subject ID and `Condition` for group information are required. `Run` information should be the same with the column of `data`. Multiple `Run` may come from same `BioReplicate`.
+* `log2Trans` : Default is FALSE. If TRUE, the input `data' is log-transformed with base 2.
 * `desired_FC` : the range of a desired fold change. The first option (Default) is "data", indicating the range of the desired fold change is directly estimated from the input `data`, which are the minimal fold change and the maximal fold change in the input `data'. The second option is a vector which includes the lower and upper values of the desired fold change (For example, c(1.25,1.75)).
-* `select_testing_proteins` : the standard to select the proteins for hypothesis testing and sample size calculation. The variance (and the range of desired fold change if desiredFC = "data") for sample size calculation will be estimated from the selected proteins. It can be 1) "proportion" of total number of proteins in the input data or
-2) "number" to specify the number of proteins. "proportion" indicates that user should provide the value for `protein_proportion` option. "number" indicates that user should provide the value for `protein_number` option.
-* `protein_proportion` : Proportion of total number of proteins in the input data to test. For example, input data has 1,000 proteins and user selects `protein_proportion=0.1`. Proteins are ranked in decreasing order based on their mean abundance across all the samples. Then, 1,000 * 0.1 = 100 proteins will be selected from the top list to test. Default is 1.0, which meaans that all the proteins will be used.
-* `protein_number` : Number of proteins to test. For example, `protein_number=1000`.
-Proteins are ranked in decreasing order based on their mean abundance across all the samples and top `protein_number` proteins will be selected to test. Default is 1000.
+* `protein_rank` : The standard to rank the proteins in the input `data'. It can be 1) "mean" of protein abundances over all the samples or 2) "sd" (standard deviation) of protein abundances over all the samples or 3) the "combined" of mean abundance and standard deviation. The proteins in the input `data' are ranked based on `protein_rank'
+and the user can select a subset of proteins for hypothesis testing and sample size calculation.
+* `protein_select` : select proteins with "low" or "high" mean abundance or standard deviation (variance) or their combination for hypothesis testing and sample size calculation. The variance (and the range of desired fold change if desiredFC = "data") will be estimated from the selected proteins. If `protein_order = "mean"' or protein_order = "sd"', `protein_select' should be "low" or "high". Default is "high", indicating high abundance or standard deviation proteins are selected. If `protein_order = "combined"', `protein_select' has two elements. The first element corrresponds to the mean abundance. The second element corrresponds to the standard deviation (variance). Default is c("high", "low") (select proteins with high abundance and low variance).
+* `protein_quantile_cutoff` : Quantile cutoff(s) for selecting protiens for hypothesis testing and sample size calculation. For example, when `protein_rank="mean"', and
+`protein_select="high"', `protein_quantile_cutoff=0.1' Proteins are ranked based on their mean abundance across all the samples. Then, the top 10% highest abundant proteins are selected. Default is 0.0, which means that all the proteins are used. If `protein_rank = "combined"', `protein_quantile_cutoff'` has two cutoffs. The first element corrresponds to the cutoff for mean abundance. The second element corrresponds to the cutoff for the standard deviation (variance). Default is c(0.0, 1.0), which means that all the proteins will be used.
 * `FDR` : a pre-specified false discovery ratio (FDR) to control the overall false positive. Default is 0.05.
 * `power` : a pre-specified statistical power which defined as the probability of detecting a true fold change. You should input the average of power you expect. Default is 0.9.
 * `width` : Width of the saved pdf file. Default is 5.
@@ -348,9 +364,9 @@ If address=FALSE, plot will be not saved as pdf file but showed in window.
 HT_res <- designSampleSizeHypothesisTestingPlot(data = OV_SRM_train,
                                                 annotation= OV_SRM_train_annotation,
                                                 desired_FC = "data",
-                                                select_testing_proteins = "proportion",
-                                                protein_proportion = 1.0,
-                                                protein_number = 1000,
+                                                protein_rank = "mean",
+                                                protein_select = "high",
+                                                protein_quantile_cutoff = 0.0,
                                                 FDR=0.05,
                                                 power=0.9)
 

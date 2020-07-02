@@ -4,7 +4,9 @@
 \name{OV_SRM_train}
 \alias{OV_SRM_train}
 \title{The training set from a study for subjects with ovarian cancer}
-\format{A numeric matrix with 67 rows and 173 columns.}
+\format{
+A numeric matrix with 67 rows and 173 columns.
+}
 \usage{
 OV_SRM_train
 }

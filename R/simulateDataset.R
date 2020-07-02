@@ -18,8 +18,34 @@
 #' @param annotation Group information for samples in data.
 #' `Run' for MS run, `BioReplicate' for biological subject ID and `Condition' for group information are required.
 #' `Run' information should be the same with the column of `data'. Multiple `Run' may come from same `BioReplicate'.
+#' @param log2Trans Default is FALSE. If TRUE, the input `data' is log-transformed with base 2.
 #' @param num_simulations Number of times to repeat simulation experiments
 #' (Number of simulated datasets). Default is 10.
+#' @param samples_per_group Number of samples per group to simulate. Default is 50.
+#' @param protein_rank The standard to rank the proteins in the input `data'.
+#' It can be 1) "mean" of protein abundances over all the samples or
+#' 2) "sd" (standard deviation) of protein abundances over all the samples or
+#' 3) the "combined" of mean abundance and standard deviation.
+#' The proteins in the input `data' are ranked based on `protein_rank'
+#' and the user can select a subset of proteins to simulate.
+#' @param protein_select select proteins with "low" or "high" mean abundance or
+#' standard deviation (variance) or their combination to simulate.
+#' If `protein_order = "mean"' or protein_order = "sd"', `protein_select' should be "low" or "high".
+#' Default is "high", indicating high abundance or standard deviation proteins are selected to simulate.
+#' If `protein_order = "combined"', `protein_select' has two elements.
+#' The first element corrresponds to the mean abundance.
+#' The second element corrresponds to the standard deviation (variance).
+#' Default is c("high", "low") (select proteins with high abundance and low variance).
+#' @param protein_quantile_cutoff Quantile cutoff(s) for selecting protiens to simulate.
+#' For example, when `protein_rank="mean"', and
+#' `protein_select="high"', `protein_quantile_cutoff=0.1'
+#' Proteins are ranked based on their mean abundance across all the samples.
+#' Then, the top 10% highest abundant proteins are selected to simulate.
+#' Default is 0.0, which means that all the proteins are used.
+#' If `protein_rank = "combined"', `protein_quantile_cutoff'` has two cutoffs.
+#' The first element corrresponds to the cutoff for mean abundance.
+#' The second element corrresponds to the cutoff for the standard deviation (variance).
+#' Default is c(0.0, 1.0), which means that all the proteins will be used.
 #' @param expected_FC Expected fold change of proteins.
 #' The first option (Default) is "data",
 #' indicating the fold changes are directly estimated from the input `data'.
@@ -31,21 +57,6 @@
 #' @param list_diff_proteins Vector of proteins names
 #' which are set to have fold changes greater than 1 between conditions.
 #' If user selected `expected_FC= "data" ', this should be NULL.
-#' @param select_simulated_proteins The standard to select the simulated proteins among data.
-#' It can be 1) "proportion" of total number of proteins in the input data or
-#' 2) "number" to specify the number of proteins.
-#' "proportion" indicates that user should provide the value for `protein_proportion' option.
-#' "number" indicates that user should provide the value for `protein_number' option.
-#' @param protein_proportion Proportion of total number of proteins in the input data to simulate.
-#' For example, input data has 1,000 proteins and user selects `protein_proportion=0.1'.
-#' Proteins are ranked in decreasing order based on their mean abundance across all the samples.
-#' Then, 1,000 * 0.1 = 100 proteins will be selected from the top list to simulate.
-#' Default is 1.0, which meaans that all the proteins will be used.
-#' @param protein_number Number of proteins to simulate. For example, `protein_number=1000'.
-#' Proteins are ranked in decreasing order based on their mean abundance across all the samples
-#' and top `protein_number' proteins will be selected to simulate.
-#' Default is 1000.
-#' @param samples_per_group Number of samples per group to simulate. Default is 50.
 #' @param simulate_validation Default is FALSE. If TRUE, simulate the validation set;
 #' otherwise, the input `data' will be used as the validation set.
 #' @param valid_samples_per_group Number of validation samples per group to simulate.
@@ -71,20 +82,21 @@
 #' data(OV_SRM_train_annotation)
 #'
 #' # num_simulations = 10: simulate 10 times
+#' # protein_rank = "mean", protein_select = "high", and protein_quantile_cutoff = 0.0:
+#' # select the proteins with high mean abundance based on the protein_quantile_cutoff
 #' # expected_FC = "data": fold change estimated from OV_SRM_train
-#' # select_simulated_proteins = "proportion":
-#' # select the simulated proteins based on the proportion of total proteins
 #' # simulate_validation = FALSE: use input OV_SRM_train as validation set
 #' # valid_samples_per_group = 50: 50 samples per condition
 #' simulated_datasets <- simulateDataset(data = OV_SRM_train,
 #'                                       annotation = OV_SRM_train_annotation,
+#'                                       log2Trans = FALSE,
 #'                                       num_simulations = 10,
+#'                                       samples_per_group = 50,
+#'                                       protein_rank = "mean",
+#'                                       protein_select = "high",
+#'                                       protein_quantile_cutoff = 0.0,
 #'                                       expected_FC = "data",
 #'                                       list_diff_proteins =  NULL,
-#'                                       select_simulated_proteins = "proportion",
-#'                                       protein_proportion = 1.0,
-#'                                       protein_number = 1000,
-#'                                       samples_per_group = 50,
 #'                                       simulate_validation = FALSE,
 #'                                       valid_samples_per_group = 50)
 #'
@@ -108,18 +120,21 @@
 #'
 simulateDataset <- function(data,
                             annotation,
+                            log2Trans = FALSE,
                             num_simulations = 10,
+                            samples_per_group = 50,
+                            protein_rank = "mean",
+                            protein_select = "high",
+                            protein_quantile_cutoff = 0.0,
                             expected_FC = "data",
                             list_diff_proteins =  NULL,
-                            select_simulated_proteins = "proportion",
-                            protein_proportion = 1.0,
-                            protein_number = 1000,
-                            samples_per_group = 50,
                             simulate_validation = FALSE,
                             valid_samples_per_group = 50) {
 
     ## Estimate the mean abundance and variance of each protein in each phenotype group
-    parameters <- estimateVar(data, annotation)
+    parameters <- estimateVar(data = data,
+                              annotation = annotation,
+                              log2Trans = log2Trans)
 
     ###############################################################################
     ## log file
@@ -131,15 +146,13 @@ simulateDataset <- function(data,
     processout <- rbind(processout,
                         as.matrix(c(" ", " ", "MSstatsSampleSize - simulateDataset function", " "), ncol=1))
 
-
     ###############################################################################
-    ## Input and option checking
-
+    data <- parameters$data
     data <- data[, annotation$Run]
     group <- as.factor(as.character(annotation$Condition))
 
-
     ## 2. check input for option
+
     ## 2.1 number of simulation : any lower limit?
     if (num_simulations < 10) {
         processout <- rbind(processout, c(paste0("ERROR : num_simulation =", num_simulations, ", which is smaller than 10. - stop")))
@@ -151,94 +164,7 @@ simulateDataset <- function(data,
     processout <- rbind(processout, c(paste0("Number of simulation = ", num_simulations)))
     write.table(processout, file=finalfile, row.names=FALSE)
 
-
-    ## 2.2 expected_FC and list_diff_proteins
-    if ( !is.element("data", expected_FC) & !is.element(1, expected_FC) ) {
-        processout <- rbind(processout, c("ERROR : expected_FC should be `data` or a vector including 1. Please check it."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("expected_FC should be `data` or a vector including 1. Please check it. \n")
-    }
-
-    if(!is.element("data", expected_FC)){
-        processout <- rbind(processout, paste0(paste0("expected_FC = ", expected_FC), collapse=","))
-        write.table(processout, file=finalfile, row.names=FALSE)
-    }
-
-
-    ## 2.3 list_diff_proteins
-    if ( is.numeric(expected_FC) & is.null(list_diff_proteins) ) {
-        processout <- rbind(processout, c("ERROR : list_diff_proteins are required for predefined expected_FC. Please provide the vector for list_diff_proteins."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("list_diff_proteins are required for predefined expected_FC. Please provide the vector for list_diff_proteins. \n")
-    }
-
-    if(!is.element("data", expected_FC)){
-        processout <- rbind(processout, paste0("list_diff_proteins = ", paste0(list_diff_proteins, collapse=",")))
-        write.table(processout, file=finalfile, row.names=FALSE)
-    }
-
-
-    ## 2.4 select_simulated_proteins
-    if ( !is.element("proportion", select_simulated_proteins) & !is.element("number", select_simulated_proteins) ) {
-        processout <- rbind(processout, c("ERROR : select_simulated_protein should be either `proportion` or `number`. Please check it."))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("select_simulated_protein should be either `proportion` or `number`. Please check it. \n")
-    }
-
-    processout <- rbind(processout, c(paste0("select_simulated_proteins = ", select_simulated_proteins)))
-    write.table(processout, file=finalfile, row.names=FALSE)
-
-
-    ## 2.5 protein_proportion
-    if(is.element("proportion", select_simulated_proteins)){
-        if (is.null(protein_proportion) ) {
-            processout <- rbind(processout, c("ERROR : protein_proportion is required for select_simulated_protein=`proportion`. Please provide the value for protein_proportion."))
-            write.table(processout, file=finalfile, row.names=FALSE)
-
-            stop("protein_proportion is required for select_simulated_protein=`proportion`. Please provide the value for protein_proportion. \n")
-
-        } else if ( protein_proportion < 0 | protein_proportion > 1 ) {
-            processout <- rbind(processout, c("ERROR : protein_proportion should be between 0 and 1. Please check the value for protein_proportion."))
-            write.table(processout, file=finalfile, row.names=FALSE)
-
-            stop("protein_proportion should be between 0 and 1. Please check the value for protein_proportion. \n")
-        }
-
-        processout <- rbind(processout, c(paste0("protein_proportion = ", protein_proportion)))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-    }
-
-
-    ## 2.6 protein_number
-    num_total_proteins <- nrow(data)
-
-    if(is.element("number", select_simulated_proteins)){
-        if (is.null(protein_number) ) {
-            processout <- rbind(processout, c("ERROR : protein_number is required for select_simulated_protein=`number`. Please provide the value for protein_number."))
-            write.table(processout, file=finalfile, row.names=FALSE)
-
-            stop("protein_number is required for select_simulated_protein=`number`. Please provide the value for protein_number. \n")
-
-        } else if ( protein_number < 0 | protein_number > num_total_proteins ) {
-            processout <- rbind(processout,
-                                c(paste0("ERROR : protein_number should be between 0 and the total number of protein(", num_total_proteins,
-                                         "). Please check the value for protein_number.")))
-            write.table(processout, file=finalfile, row.names=FALSE)
-
-            stop(paste0("protein_number should be between 0 and the total number of protein(", num_total_proteins,
-                        "). Please check the value for protein_number. \n"))
-        }
-
-        processout <- rbind(processout, c(paste0("protein_number = ", protein_number)))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-    }
-
-    ## 2.7 samples_per_group
+    ## 2.2 samples_per_group
     if ( !is.numeric(samples_per_group) ) {
         processout <- rbind(processout, c("ERROR : sample_per_group should be numeric. Please provide the numeric value for samples_per_group."))
         write.table(processout, file=finalfile, row.names=FALSE)
@@ -258,30 +184,118 @@ simulateDataset <- function(data,
     processout <- rbind(processout, c(paste0("samples_per_group = ", samples_per_group)))
     write.table(processout, file=finalfile, row.names=FALSE)
 
+    ## 2.3 protein_rank
+    if ( !protein_rank %in% c("mean", "sd", "combined") | length(protein_rank) > 1) {
+        processout <- rbind(processout, c("ERROR : protein_rank should be `mean` or `sd` or `combined`. Please check it."))
+        write.table(processout, file=finalfile, row.names=FALSE)
+
+        stop("protein_rank should be `mean` or `sd` or `combined`. Please check it. \n")
+    }
+
+    processout <- rbind(processout, c(paste0("protein_rank = ", protein_rank)))
+    write.table(processout, file=finalfile, row.names=FALSE)
+
+    ## 2.4 protein_select
+    if(protein_rank == "combined"){
+        if(length(protein_select) != 2 | !all(protein_select %in% c("high", "low"))){
+            processout <- rbind(processout, c("ERROR : When protein_rank = `combined`, protein_select should have two values,
+                 each of which should be either `low` or `high`. Please check it. "))
+            write.table(processout, file=finalfile, row.names=FALSE)
+
+            stop("When protein_rank = `combined`, protein_select should have two values, each of which should be either `low` or `high`.
+                 Please check it. \n")
+        }
+    } else{
+        if(length(protein_select) != 1 | !all(protein_select %in% c("high", "low"))){
+            processout <- rbind(processout,
+                                c("ERROR : protein_select should be either `low` or `high`. Please check it. "))
+            write.table(processout, file=finalfile, row.names=FALSE)
+
+            stop("protein_select should be either `low` or `high`. Please check it. \n")
+        }
+    }
+
+    processout <- rbind(processout, paste0(paste0("protein_select = ", protein_select), collapse=","))
+    write.table(processout, file=finalfile, row.names=FALSE)
+
+    ## 2.5 protein_quantile_cutoff
+    if(protein_rank == "combined"){
+        if(length(protein_quantile_cutoff) != 2 |
+           any(protein_quantile_cutoff < 0) |
+           any(protein_quantile_cutoff > 1)){
+            processout <- rbind(processout, c("ERROR : When protein_rank = `combined`, protein_quantile_cutoff should have two values,
+                 each of which should be between 0 and 1. Please check it. "))
+            write.table(processout, file=finalfile, row.names=FALSE)
+
+            stop("When protein_rank = `combined`, protein_quantile_cutoff should have two values, each of which should be between 0 and 1.
+                 Please check it. \n")
+        }
+    } else{
+        if(length(protein_quantile_cutoff) != 1 |
+           any(protein_quantile_cutoff < 0) |
+           any(protein_quantile_cutoff > 1)){
+            processout <- rbind(processout, c("ERROR : protein_quantile_cutoff should be between 0 and 1.
+                                              Please check it. "))
+            write.table(processout, file=finalfile, row.names=FALSE)
+
+            stop("protein_quantile_cutoff should be between 0 and 1. Please check it. \n")
+        }
+    }
+
+    processout <- rbind(processout, paste0(paste0("protein_quantile_cutoff = ", protein_quantile_cutoff), collapse=","))
+    write.table(processout, file=finalfile, row.names=FALSE)
+
+    ## 2.6 expected_FC and list_diff_proteins
+    if ( !is.element("data", expected_FC) & !is.element(1, expected_FC) ) {
+        processout <- rbind(processout, c("ERROR : expected_FC should be `data` or a vector including 1. Please check it."))
+        write.table(processout, file=finalfile, row.names=FALSE)
+
+        stop("expected_FC should be `data` or a vector including 1. Please check it. \n")
+    }
+
+    if(!is.element("data", expected_FC)){
+        processout <- rbind(processout, paste0(paste0("expected_FC = ", expected_FC), collapse=","))
+        write.table(processout, file=finalfile, row.names=FALSE)
+    }
+
+    ## 2.7 list_diff_proteins
+    if ( is.numeric(expected_FC) & is.null(list_diff_proteins) ) {
+        processout <- rbind(processout, c("ERROR : list_diff_proteins are required for predefined expected_FC. Please provide the vector for list_diff_proteins."))
+        write.table(processout, file=finalfile, row.names=FALSE)
+
+        stop("list_diff_proteins are required for predefined expected_FC. Please provide the vector for list_diff_proteins. \n")
+    }
+
+    if(!is.element("data", expected_FC)){
+        processout <- rbind(processout, paste0("list_diff_proteins = ", paste0(list_diff_proteins, collapse=",")))
+        write.table(processout, file=finalfile, row.names=FALSE)
+    }
 
     ## 2.8 simulated value
     if ( !is.logical(simulate_validation) ) {
-        processout <- rbind(processout, c("ERROR : simulate_validation should be logical. Please provide either TRUE or FALSE for simulate_validation."))
+        processout <- rbind(processout, c("ERROR : simulate_validation should be logical.
+                                          Please provide either TRUE or FALSE for simulate_validation."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
-        stop("simulate_validation should be logical. Please provide either TRUE or FALSE for simulate_validation. \n")
+        stop("simulate_validation should be logical.
+             Please provide either TRUE or FALSE for simulate_validation. \n")
     }
 
     processout <- rbind(processout, c(paste0("simulate_validation = ", simulate_validation)))
     write.table(processout, file=finalfile, row.names=FALSE)
 
-
     ## 2.9 valid_samples_per_group
     if ( simulate_validation & (is.null(valid_samples_per_group) | !is.numeric(valid_samples_per_group)) ) {
-        processout <- rbind(processout, c("ERROR : valid_samples_per_group is required for simulate_validation=TRUE. Please provide the numeric value for valid_samples_per_group."))
+        processout <- rbind(processout, c("ERROR : valid_samples_per_group is required for simulate_validation=TRUE.
+                                          Please provide the numeric value for valid_samples_per_group."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
-        stop("valid_samples_per_group is required for simulate_validation=TRUE. Please provide the numeric value for valid_samples_per_group. \n")
+        stop("valid_samples_per_group is required for simulate_validation=TRUE.
+             Please provide the numeric value for valid_samples_per_group. \n")
     }
 
     processout <- rbind(processout, c(paste0("valid_samples_per_group = ", valid_samples_per_group)))
     write.table(processout, file=finalfile, row.names=FALSE)
-
 
     ###############################################################################
     processout <- rbind(processout, c("Preparing simulation...."))
@@ -291,30 +305,88 @@ simulateDataset <- function(data,
     ## Prepare the parameters for simulation experiment
     mu <- parameters$mu
     sigma <- parameters$sigma
-    promean <- parameters$promean
     proteins <- parameters$protein
+
+    ## select the proteins to simulate
+    temp <- data.frame(Protein = proteins,
+                       Mean = parameters$promean[proteins],
+                       SD = parameters$prosd[proteins])
+
+    # 1. use both mean and standard deviation cutoff
+    if(protein_rank == "combined"){
+        mean_cutoff <- quantile(temp$Mean, probs = protein_quantile_cutoff[1], na.rm = TRUE)
+        sd_cutoff <- quantile(temp$SD, probs = protein_quantile_cutoff[2], na.rm = TRUE)
+        if(protein_select[1] == "low" & protein_select[2] == "low") { # low abundance and low variance
+            selectedPros <- temp[temp$Mean <= mean_cutoff & temp$SD <= sd_cutoff, "Protein"]
+        } else if(protein_select[1] == "low" & protein_select[2] == "high") { # low abundance and high variance
+            selectedPros <- temp[temp$Mean <= mean_cutoff & temp$SD > sd_cutoff, "Protein"]
+        } else if(protein_select[1] == "high" & protein_select[2] == "low") { # high abundance and low variance
+            selectedPros <- temp[temp$Mean > mean_cutoff & temp$SD <= sd_cutoff, "Protein"]
+        } else if(protein_select[1] == "high" & protein_select[2] == "high") { # high abundance and high variance
+            selectedPros <- temp[temp$Mean > mean_cutoff & temp$SD > sd_cutoff, "Protein"]
+        }
+
+    # 2. use mean cutoff
+    } else if(protein_rank == "mean"){
+        mean_cutoff <- quantile(temp$Mean, probs = protein_quantile_cutoff, na.rm = TRUE)
+        if(protein_select == "low") { # low protein abundance
+            selectedPros <- temp[temp$Mean <= mean_cutoff, "Protein"]
+        } else if(protein_select == "high") { # high protein abundacne
+            selectedPros <- temp[temp$Mean > mean_cutoff, "Protein"]
+        }
+
+    # 3. use standard deviation cutoff
+    } else if(protein_rank == "sd"){
+        sd_cutoff <- quantile(temp$SD, probs = protein_quantile_cutoff, na.rm = TRUE)
+        if(protein_select == "low") { # low variance
+            selectedPros <- temp[temp$SD <= sd_cutoff, "Protein"]
+        } else if(protein_select == "high") { # high variance
+            selectedPros <- temp[temp$SD > sd_cutoff, "Protein"]
+        }
+
+    }
 
     ## prepare the mean and variance matrix for simulation
     # 1. use the fold change estimated from input data
     if (is.element("data", expected_FC)) {
-        sim_mu <- mu
-        sim_sigma <- sigma
+        sim_mu <- mu[selectedPros, ]
+        sim_sigma <- sigma[selectedPros, ]
 
     # 2. use the user-defined fold change
     } else {
-        sim_mu <- mu
-        sim_sigma <- sigma
+        sim_mu <- mu[selectedPros, ]
+        sim_sigma <- sigma[selectedPros, ]
 
         baseline <- names(expected_FC)[expected_FC == 1] # baseline group
         otherlines <- names(expected_FC)[expected_FC != 1] # compared groups
 
+        if(!all(list_diff_proteins %in%  selectedPros)){
+            selected_diff_proteins <- intersect(list_diff_proteins, selectedPros)
+
+            if (length(selected_diff_proteins) == 0) {
+                processout <- rbind(processout, c("ERROR : none of list_diff_proteins are selected to simulate based on protein_quantile_cutoff.
+                                                  Please check it."))
+                write.table(processout, file=finalfile, row.names=FALSE)
+
+                stop("None of list_diff_proteins are selected to simulate based on protein_quantile_cutoff.
+                     Please check it. \n")
+            }
+
+            processout <- rbind(processout, paste0("NOTE : ", round(length(selected_diff_proteins)/length(list_diff_proteins), 4)*100,
+                                                   "% list_diff_proteins are selected to simulate based on protein_quantile_cutoff."))
+            write.table(processout, file=finalfile, row.names=FALSE)
+
+            message(paste0("NOTE : ", round(length(selected_diff_proteins)/length(list_diff_proteins), 4)*100,
+                           "% list_diff_proteins are selected to simulate based on protein_quantile_cutoff."))
+        }
+
         for(i in seq_along(otherlines)){
             # set group mean for differential proteins based on predefined fold change
-            sim_mu[rownames(sim_mu) %in% list_diff_proteins, otherlines[i]] <-
-            sim_mu[rownames(sim_mu) %in% list_diff_proteins, baseline] * expected_FC[otherlines[i]]
+            sim_mu[rownames(sim_mu) %in% selected_diff_proteins, otherlines[i]] <-
+            sim_mu[rownames(sim_mu) %in% selected_diff_proteins, baseline] * expected_FC[otherlines[i]]
             # set group mean for non-differential proteins (fold change = 1)
-            sim_mu[!rownames(sim_mu) %in% list_diff_proteins, otherlines[i]] <-
-            sim_mu[!rownames(sim_mu) %in% list_diff_proteins, baseline]
+            sim_mu[!rownames(sim_mu) %in% selected_diff_proteins, otherlines[i]] <-
+            sim_mu[!rownames(sim_mu) %in% selected_diff_proteins, baseline]
         }
     }
 
@@ -328,39 +400,22 @@ simulateDataset <- function(data,
     write.table(processout, file=finalfile, row.names=FALSE)
     message(" Size of training data to simulate: ", train_size)
 
-    ## Generate the protein number to simulate
-    # 1. based on proportion
-    if (select_simulated_proteins == "proportion") {
-        nproteins <- nrow(mu)
-        protein_num <- round(nproteins*protein_proportion)
-
-    # 2. based on number
-    } else {
-        protein_num <- protein_number
-    }
-
-    ## select proteins based on their mean abundance
-    selectedPros <- order(promean, decreasing = TRUE)[1:protein_num]
-
-    ## prepare the mean and variance for simulation
-    mu_2 <- mu[selectedPros, ]
-    sigma_2 <- sigma[selectedPros, ]
-
     ## prepare the validation set
     # 1.  simulate samples in the validation data
     if (simulate_validation) {
-
         valid <- .sampleSimulation(m = valid_samples_per_group,
-                                   mu = mu_2,
-                                   sigma = sigma_2)
+                                   mu = sim_mu,
+                                   sigma = sim_sigma)
         valid_X <- as.data.frame(valid$X)
         valid_Y <- as.factor(valid$Y)
+
     } else{ # use input data as validation set
         ## !! impute the missing values by randomly selecting values for each protein
         valid_X <- as.data.frame(apply(data[selectedPros, ],1, function(x) .randomImputation(x))) # impute missing values
         valid_Y <- as.factor(group)
     }
 
+    protein_num <- length(selectedPros)
     processout <- rbind(processout, c(paste0(" Number of proteins to simulate: ", protein_num)))
     write.table(processout, file=finalfile, row.names=FALSE)
     message(" Number of proteins to simulate: ", protein_num)
@@ -377,8 +432,8 @@ simulateDataset <- function(data,
 
         ## simulate samples in the training data
         train <- .sampleSimulation(m = samples_per_group,
-                                   mu = mu_2,
-                                   sigma = sigma_2)
+                                   mu = sim_mu,
+                                   sigma = sim_sigma)
         X <- as.data.frame(train$X)
         Y <- as.factor(train$Y)
 

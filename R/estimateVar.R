@@ -7,10 +7,13 @@
 #' @param annotation Group information for samples in data.
 #' `Run' for MS run, `BioReplicate' for biological subject ID and `Condition' for group information are required.
 #' `Run' information should be the same with the column of `data'. Multiple `Run' may come from same `BioReplicate'.
+#' @param log2Trans Logical. If TRUE, the input `data' is log-transformed with base 2. Default is FALSE.
+#' @return \emph{data} is the input data matrix with log2 protein abundance.
 #' @return \emph{model} is the list of linear models trained for each protein.
 #' @return \emph{mu} is the mean abundance matrix of each protein in each phenotype group.
 #' @return \emph{sigma} is the sd matrix of each protein in each phenotype group.
 #' @return \emph{promean} is the mean abundance vector of each protein across all the samples.
+#' @return \emph{prosd} is the standard deviation of each protein across all the samples.
 #' @return \emph{protein} is proteins, correpsonding to the rows in \emph{mu} and \emph{sigma} or the element of \emph{promean}.
 #'
 #' @author Ting Huang, Meena Choi, Olga Vitek
@@ -19,9 +22,10 @@
 #' data(OV_SRM_train)
 #' data(OV_SRM_train_annotation)
 #'
-#' # estimate the mean protein abunadnce and variance in each condition
+#' # estimate the mean protein abunadnce and variance (standard deviation) in each condition
 #' variance_estimation <- estimateVar(data = OV_SRM_train,
-#'                                    annotation = OV_SRM_train_annotation)
+#'                                    annotation = OV_SRM_train_annotation,
+#'                                    log2Trans = FALSE)
 #'
 #' # the mean protein abundance in each condition
 #' head(variance_estimation$mu)
@@ -32,12 +36,16 @@
 #' # the mean protein abundance across all the conditions
 #' head(variance_estimation$promean)
 #'
+#' # the sample standard deviation across all the conditions
+#' head(variance_estimation$prosd)
+#'
 #' @export
 #' @importFrom utils sessionInfo read.table write.table
 #' @importFrom stats lm coef anova
 #'
 estimateVar <- function(data,
-                        annotation) {
+                        annotation,
+                        log2Trans = FALSE) {
 
     ###############################################################################
     ## log file
@@ -90,8 +98,9 @@ estimateVar <- function(data,
                    "is not provided in Annotation. Please check the annotation file. \n"))
     }
 
-    if (!all(annotation$Run %in% colnames(data)) &
-        nrow(annotation) == ncol(data)) {
+    if (nrow(annotation) != ncol(data) |
+        !all(annotation$Run %in% colnames(data)) |
+        !all(colnames(data) %in% annotation$Run)) {
         processout <- rbind(processout, c("ERROR: Please check the annotation file.
                                           'Run' must match with the column names of 'data'."))
         write.table(processout, file=finalfile, row.names=FALSE)
@@ -129,6 +138,39 @@ estimateVar <- function(data,
         stop("Please check the column names of data and Run in annotation. \n")
     }
 
+    ## make sure each condition has at least three biological replicates
+    temp <- unique(annotation[annotation$Run %in% colnames(data), c("BioReplicate", "Condition")])
+    temp$Condition <- factor(temp$Condition)
+    temp$BioReplicate <- factor(temp$BioReplicate)
+    temp1 <- xtabs(~ Condition+BioReplicate, data=temp)
+    if(all(rowSums(temp1) < 3)){
+        processout <- rbind(processout, c("ERROR: Each condition must have at least three biological replicates."))
+        write.table(processout, file=finalfile, row.names=FALSE)
+
+        stop("Each condition must have at least three biological replicates. \n")
+    }
+
+    ## check input for option
+    if ( !is.logical(log2Trans) ) {
+        processout <- rbind(processout, c("ERROR : log2Trans should be logical. Please provide either TRUE or FALSE for log2Trans"))
+        write.table(processout, file=finalfile, row.names=FALSE)
+
+        stop("log2Trans should be logical. Please provide either TRUE or FALSE for log2Trans \n")
+    }
+
+    ## log2 transformation
+    if(log2Trans){
+        data <- log2(data)
+    }
+
+    ## Number of negative values : if intensity is less than 1
+    ## replace with zero
+    ## then we don't need to worry about -Inf = log2(0)
+    if (sum(data[!is.na(data) & data < 0]) > 0){
+        data[!is.na(data) & data < 0] <- NA
+        message(' Negative log2 intensities were replaced with NA.')
+    }
+
     processout <- rbind(processout, c(paste0("Summary : number of proteins in the input data = ", nrow(data) )))
     processout <- rbind(processout, c(paste0("Summary : number of samples in the input data = ", ncol(data) )))
     write.table(processout, file=finalfile, row.names=FALSE)
@@ -146,6 +188,7 @@ estimateVar <- function(data,
     GroupVar <- matrix(rep(NA, nproteins * ngroup), ncol = ngroup)
     GroupMean <- matrix(rep(NA, nproteins * ngroup), ncol = ngroup)
     SampleMean <- NULL # mean across all the samples
+    SampleSD <- NULL # standard deviation across all the samples
     Proteins <- NULL # record the proteins to simulate
     Models <- list()
     count = 0
@@ -173,6 +216,7 @@ estimateVar <- function(data,
                 GroupVar[count, ] <- rep(sqrt(var), times=length(abun))
                 GroupMean[count, ] <- abun
                 SampleMean <- c(SampleMean, mean(sub$ABUNDANCE, na.rm = TRUE))
+                SampleSD <- c(SampleSD, var(sub$ABUNDANCE, na.rm = TRUE))
                 Proteins <- c(Proteins, rownames(data)[i])
             }
         }
@@ -187,14 +231,17 @@ estimateVar <- function(data,
     rownames(GroupMean) <- Proteins
     colnames(GroupMean) <- groups
     names(SampleMean) <- Proteins
+    names(SampleSD) <- Proteins
 
     processout <- rbind(processout, c(" Variance analysis completed."))
     write.table(processout, file=finalfile, row.names=FALSE)
     message(" Variance analysis completed.")
 
-    return(list(model = Models,
+    return(list(data = data,
+                model = Models,
                 protein = Proteins,
                 promean = SampleMean,
+                prosd = SampleSD,
                 mu = GroupMean,
                 sigma = GroupVar))
 }

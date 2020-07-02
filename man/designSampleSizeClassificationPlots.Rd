@@ -106,13 +106,14 @@ for(i in seq_along(list_samples_per_group)){
     # run simulation for each sample size
     simulated_datasets <- simulateDataset(data = OV_SRM_train,
                                           annotation = OV_SRM_train_annotation,
+                                          log2Trans = FALSE,
                                           num_simulations = 10, # simulate 10 times
+                                          samples_per_group = list_samples_per_group[i],
+                                          protein_rank = "mean",
+                                          protein_select = "high",
+                                          protein_quantile_cutoff = 0.0,
                                           expected_FC = "data",
                                           list_diff_proteins =  NULL,
-                                          select_simulated_proteins = "proportion",
-                                          protein_proportion = 1.0,
-                                          protein_number = 1000,
-                                          samples_per_group = list_samples_per_group[i],
                                           simulate_valid = FALSE,
                                           valid_samples_per_group = 50)
 

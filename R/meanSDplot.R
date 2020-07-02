@@ -1,8 +1,8 @@
 #' Mean-SD plot
-#' @description Draw the plot for the mean protein abundance vs standard deviation in each condition.
+#' @description Draw the plot for the mean protein abundance vs standard deviation (square root of variance).
 #' The `lowess' function is used to fit the LOWESS smoother between mean protein abundance and standard deviation.
 #'
-#' @param data A list with mean protein abundance matrix and standard deviation matrix.
+#' @param data A list with mean protein abundance vector and standard deviation vector.
 #' It should be the output of \code{\link{estimateVar}} function.
 #' @param x.axis.size Size of x-axis labeling in Mean-SD Plot. Default is 10.
 #' @param y.axis.size Size of y-axis labels. Default is 10.
@@ -17,7 +17,7 @@
 #' The command address can help to specify where to store the file as well as how to modify the beginning of the file name.
 #' If address=FALSE, plot will be not saved as pdf file but showed in window.
 #'
-#' @return \emph{meanSDplot} is the plot for the mean protein abundance (X-axis) vs standard deviation (Y-axis) in each condition.
+#' @return \emph{meanSDplot} is the plot for the mean protein abundance (X-axis) vs standard deviation (Y-axis).
 #' @author Ting Huang, Meena Choi, Olga Vitek
 #' @examples
 #' data(OV_SRM_train)
@@ -79,8 +79,8 @@ meanSDplot <- function(data,
         pdf(plotfinalfile, width=width, height=height)
     }
 
-    plotdata <- data.frame(mean=as.vector(data$mu), sd=as.vector(data$sigma))
-    plot.lowess <- lowess(cbind(plotdata$mean,plotdata$sd))
+    plotdata <- data.frame(mean=data$promean, sd=data$prosd)
+    plot.lowess <- lowess(cbind(plotdata$mean, plotdata$sd))
     plot.lowess <- data.frame(x = plot.lowess$x, y = plot.lowess$y)
 
     meansdplot <-  ggplot(data = plotdata, aes(mean, sd)) +
@@ -88,8 +88,8 @@ meanSDplot <- function(data,
         scale_fill_continuous(low = "white", high = "#0072B2")+
         geom_point(alpha = 0.02, shape = 20)+
         geom_line(data = plot.lowess, aes(x, y), color="orange", size = smoother_size) +
-        labs(x = "Mean protein abundance per condition",
-             y = "Standard deviation per condition") +
+        labs(x = "Mean protein abundance",
+             y = "Standard deviation") +
         scale_y_continuous(expand = c(0,0), limits = c(0,ylimUp)) +
         scale_x_continuous(expand = c(0,0), limits = c(0,xlimUp)) +
         theme(

@@ -4,7 +4,7 @@
 \alias{estimateVar}
 \title{Estimate the mean abundance and variance of each protein in each condition.}
 \usage{
-estimateVar(data, annotation)
+estimateVar(data, annotation, log2Trans = FALSE)
 }
 \arguments{
 \item{data}{Data matrix with protein abundance.
@@ -13,8 +13,12 @@ Rows are proteins and columns are Biological replicates or samples.}
 \item{annotation}{Group information for samples in data.
 `Run' for MS run, `BioReplicate' for biological subject ID and `Condition' for group information are required.
 `Run' information should be the same with the column of `data'. Multiple `Run' may come from same `BioReplicate'.}
+
+\item{log2Trans}{Logical. If TRUE, the input `data' is log-transformed with base 2. Default is FALSE.}
 }
 \value{
+\emph{data} is the input data matrix with log2 protein abundance.
+
 \emph{model} is the list of linear models trained for each protein.
 
 \emph{mu} is the mean abundance matrix of each protein in each phenotype group.
@@ -22,6 +26,8 @@ Rows are proteins and columns are Biological replicates or samples.}
 \emph{sigma} is the sd matrix of each protein in each phenotype group.
 
 \emph{promean} is the mean abundance vector of each protein across all the samples.
+
+\emph{prosd} is the standard deviation of each protein across all the samples.
 
 \emph{protein} is proteins, correpsonding to the rows in \emph{mu} and \emph{sigma} or the element of \emph{promean}.
 }
@@ -36,9 +42,10 @@ This function outputs variance components and mean abundance for each protein.
 data(OV_SRM_train)
 data(OV_SRM_train_annotation)
 
-# estimate the mean protein abunadnce and variance in each condition
+# estimate the mean protein abunadnce and variance (standard deviation) in each condition
 variance_estimation <- estimateVar(data = OV_SRM_train,
-                                   annotation = OV_SRM_train_annotation)
+                                   annotation = OV_SRM_train_annotation,
+                                   log2Trans = FALSE)
 
 # the mean protein abundance in each condition
 head(variance_estimation$mu)
@@ -48,6 +55,9 @@ head(variance_estimation$sigma)
 
 # the mean protein abundance across all the conditions
 head(variance_estimation$promean)
+
+# the sample standard deviation across all the conditions
+head(variance_estimation$prosd)
 
 }
 \author{
