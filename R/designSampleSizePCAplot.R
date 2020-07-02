@@ -78,7 +78,7 @@ designSampleSizePCAplot <- function(simulations,
     }else{
         conn <- dots$log_conn
     }
-    func <- as.list(sys.call(-1))[[1]]
+    func <- as.list(sys.call())[[1]]
 
     ## parameter checking: which.PCA
     if (!(length(which.PCA) == 1 &

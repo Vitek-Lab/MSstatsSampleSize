@@ -99,7 +99,7 @@ designSampleSizeClassification <- function(simulations,
     }else{
         conn <- dots$log_conn
     }
-    func <- as.list(sys.call(-1))[[1]]
+    func <- as.list(sys.call())[[1]]
     .status("", log = con$con, func = func)
 
     ###############################################################################

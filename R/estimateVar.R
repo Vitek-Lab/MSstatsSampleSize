@@ -48,7 +48,7 @@ estimateVar <- function(data,
     }else{
         conn <- dots$log_conn
     }
-    func <- as.list(sys.call(-1))[[1]]
+    func <- as.list(sys.call())[[1]]
     .status("Estimating Variance", log = conn$con, func = func, ...)
     
     ###############################################################################

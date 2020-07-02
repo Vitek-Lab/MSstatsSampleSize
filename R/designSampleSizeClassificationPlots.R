@@ -123,7 +123,7 @@ designSampleSizeClassificationPlots <- function(data,
     }else{
         conn <- dots$log
     }
-    func <- as.list(sys.call(-1))[[1]]
+    func <- as.list(sys.call())[[1]]
     ################################################################################
     ## need to simulate at least two different sample sizes
     num_sample_size <- length(data)

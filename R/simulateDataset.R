@@ -119,13 +119,21 @@ simulateDataset <- function(data,
                             valid_samples_per_group = 50,...) {
     
     ## Generate Log connection and file
-    con <- .logGeneration()
+    dots <- list(...)
+    if(is.null(dots$log_conn)){
+        conn <- .logGeneration()  
+    }else{
+        conn <- dots$log_conn
+    }
+    func <- as.list(sys.call())[[1]]
     ## Estimate the mean abundance and variance of each protein in each phenotype group
-    parameters <- estimateVar(data, annotation, file_conn = con$con)
-    con <- .logGeneration(file = con$file)
+    if(is.null(dots$parameters)){
+        parameters <- estimateVar(data, annotation, log_conn = conn$con)
+        con <- .logGeneration(file = con$file)
+    }
     ###############################################################################
-    .status("MSstatsSampleSize - simulateDataset function", log = con$con,
-            func = "simulateDataset",...)
+    .status("MSstatsSampleSize - simulateDataset function", log = conn$con,
+            func = func,...)
 
     ###############################################################################
     ## Input and option checking
@@ -138,22 +146,22 @@ simulateDataset <- function(data,
     ## 2.1 number of simulation : any lower limit?
     if (num_simulations < 10) {
         .status(sprintf("Error: num_simulation = %s which is smaller than 10.",
-                        num_simulations), log = con$con, func = "simulateDataset", ...)
+                        num_simulations), log = conn$con, func = func, ...)
         stop("Please use more than 10 simulations.")
     }
     
     .status(sprintf("Number of Simulations = %s", num_simulations),
-            log = con$con, func = "simulateDataset", ...)
+            log = conn$con, func = func, ...)
 
     ## 2.2 expected_FC and list_diff_proteins
     if ( !is.element("data", expected_FC) & !is.element(1, expected_FC) ) {
         .status("ERROR : expected_FC should be `data` or a vector including 1. Please check it.",
-                log = con$con, func = "simulateDataset", ...)
+                log = conn$con, func = func, ...)
         stop("expected_FC should be `data` or a vector including 1. Please check it.")
     }
 
     if(!is.element("data", expected_FC)){
-        .status(sprintf("expected_FC = %s", expected_FC), log = con$con, func = "simulateDataset", ...)
+        .status(sprintf("expected_FC = %s", expected_FC), log = conn$con, func = func, ...)
     }
 
 
@@ -161,7 +169,7 @@ simulateDataset <- function(data,
     if ( is.numeric(expected_FC) & is.null(list_diff_proteins) ) {
         .status("list_diff_proteins are required for predefined expected_FC. 
                 Please provide the vector for list_diff_proteins.",
-                log = con$con, func = "simulateDataset", ...)
+                log = conn$con, func = func, ...)
         stop("list_diff_proteins are required for predefined expected_FC. 
              Please provide the vector for list_diff_proteins.")
     }
@@ -169,34 +177,34 @@ simulateDataset <- function(data,
     if(!is.element("data", expected_FC)){
         .status(sprintf("list_diff_proteins = (%s)", 
                         paste(list_diff_proteins, collapse = ", ")), 
-                log = con$con, func = "simulateDataset", ...)
+                log = conn$con, func = func, ...)
     }
 
 
     ## 2.4 select_simulated_proteins
     if ( !is.element("proportion", select_simulated_proteins) & !is.element("number", select_simulated_proteins) ) {
         .status("select_simulated_protein should be either `proportion` or `number`
-                . Please check it.", log = con$con, func = "simulateDataset", ...)
+                . Please check it.", log = conn$con, func = func, ...)
         stop("select_simulated_protein should be either `proportion` or `number`. Please check it.")
     }
     
     .status(sprintf("select_simulated_proteins = %s", select_simulated_proteins)
-            , log = con$con, func = "simulateDataset", ...)
+            , log = conn$con, func = func, ...)
 
     ## 2.5 protein_proportion
     if(is.element("proportion", select_simulated_proteins)){
         if (is.null(protein_proportion) ) {
             .status("protein_proportion is required for select_simulated_protein=`proportion`. Please provide the value for protein_proportion.",
-                    log = con$con, func = "simulateDataset", ...)
+                    log = conn$con, func = func, ...)
             stop("protein_proportion is required for select_simulated_protein=`proportion`. Please provide the value for protein_proportion.")
 
         } else if ( protein_proportion < 0 | protein_proportion > 1 ) {
             .status("protein_proportion should be between 0 and 1. Please check the value for protein_proportion.",
-                    log = con$con, func = "simulateDataset", ...)
+                    log = conn$con, func = func, ...)
             stop("protein_proportion should be between 0 and 1. Please check the value for protein_proportion.")
         }
         .status(sprintf("protein_proportion = %s", protein_proportion),
-                log = con$con, func = "simulateDataset", ...)
+                log = conn$con, func = func, ...)
     }
 
 
@@ -206,23 +214,23 @@ simulateDataset <- function(data,
     if(is.element("number", select_simulated_proteins)){
         if (is.null(protein_number) ) {
             .status("ERROR: protein_number is required for select_simulated_protein=`number`. Please provide the value for protein_number."
-                    , log = con$con, func = "simulateDataset", ...)
+                    , log = conn$con, func = func, ...)
             stop("protein_number is required for select_simulated_protein=`number`. Please provide the value for protein_number.")
 
         } else if ( protein_number < 0 | protein_number > num_total_proteins ) {
             .status(sprintf("protein_number should be between 0 and the total number of protein (%s)",
-                            num_total_proteins), log = con$con, func = "simulateDataset", ...)
+                            num_total_proteins), log = conn$con, func = func, ...)
             stop(paste0("protein_number should be between 0 and the total number of protein(", num_total_proteins,
                         "). Please check the value for protein_number."))
         }
         .status(sprintf("protein_number = %s", protein_number),
-                log = con$con, func = "simulateDataset", ...)
+                log = conn$con, func = func, ...)
     }
 
     ## 2.7 samples_per_group
     if ( !is.numeric(samples_per_group) ) {
         .status("ERROR : sample_per_group should be numeric. Please provide the numeric value for samples_per_group.",
-                log = con$con, func = "simulateDataset", ...)
+                log = conn$con, func = func, ...)
         stop("sample_per_group should be numeric. Please provide the numeric value for samples_per_group.")
 
     } else if ( samples_per_group%%1 != 0 ) { ## not integer, then round
@@ -230,34 +238,34 @@ simulateDataset <- function(data,
         samples_per_group <- round(samples_per_group)
 
         .status("NOTE : samples_per_group should be integer. Rounded samples_per_group will be used.",
-                log = con$con, func = "simulateDataset", ...)
+                log = conn$con, func = func, ...)
     }
 
     .status(sprintf("samples_per_group = (%s)", samples_per_group),
-            log = con$con, func = "simulateDataset", ...)
+            log = conn$con, func = func, ...)
 
 
     ## 2.8 simulated value
     if ( !is.logical(simulate_validation) ) {
         .status("ERROR : simulate_validation should be logical. Please provide either TRUE or FALSE for simulate_validation.",
-                log = con$con, func = "simulateDataset", ...)
+                log = conn$con, func = func, ...)
         stop("simulate_validation should be logical. Please provide either TRUE or FALSE for simulate_validation.")
     }
 
     .status(sprintf("simulate_validation = %s", simulate_validation),
-            log = con$con, func = "simulateDataset", ...)
+            log = conn$con, func = func, ...)
 
     ## 2.9 valid_samples_per_group
     if ( simulate_validation & (is.null(valid_samples_per_group) | !is.numeric(valid_samples_per_group)) ) {
         .status("ERROR : valid_samples_per_group is required for simulate_validation=TRUE. Please provide the numeric value for valid_samples_per_group.",
-                log = con$con, func = "simulateDataset", ...)
+                log = conn$con, func = func, ...)
         stop("valid_samples_per_group is required for simulate_validation=TRUE. Please provide the numeric value for valid_samples_per_group.")
     }
     .status(sprintf("valid_samples_per_group = (%s)", valid_samples_per_group),
-            log = con$con,func = "simulateDataset", ...)
+            log = conn$con,func = func, ...)
 
     ###############################################################################
-    .status("Preparing simulation", log = con$con, func = "simulateDataset", ...)
+    .status("Preparing simulation", log = conn$con, func = func, ...)
 
     ## Prepare the parameters for simulation experiment
     mu <- parameters$mu
@@ -295,7 +303,7 @@ simulateDataset <- function(data,
     names(num_samples) <- unique(group)
     train_size <- samples_per_group * ngroup
     .status(sprintf("Size of training data to simulate: %s", train_size),
-            log = con$con, func = "simulateDataset", ...)
+            log = conn$con, func = func, ...)
     
     ## Generate the protein number to simulate
     # 1. based on proportion
@@ -331,14 +339,14 @@ simulateDataset <- function(data,
     }
 
     .status(sprintf("Number of proteins to simulate:%s ", protein_num),
-            log = con$con, func = "simulateDataset", ...)
-    .status("Start to run the simulation", log = con$con, func = "simulateDataset", ...)
+            log = conn$con, func = func, ...)
+    .status("Start to run the simulation", log = conn$con, func = func, ...)
 
     simulation_train_Xs <- list()
     simulation_train_Ys <- list()
 
     for (i in seq_len(num_simulations)) { ## Number of simulations
-        .status(sprintf("Simulation: %s", i), log = con$con, func = "simulateDataset", ...)
+        .status(sprintf("Simulation: %s", i), log = conn$con, func = func, ...)
 
         ## simulate samples in the training data
         train <- .sampleSimulation(m = samples_per_group,
@@ -351,8 +359,8 @@ simulateDataset <- function(data,
         simulation_train_Ys[[paste("Simulation", i, sep="")]] <- Y
     }
 
-    .status("Simulation completed", log = con$con, func = "simulateDataset", ...)
-    close(con$con)
+    .status("Simulation completed", log = conn$con, func = func, ...)
+    close(conn$con)
 
     return(list(num_proteins = protein_num, # number of proteins
                 num_samples = num_samples, # number of samples per group
