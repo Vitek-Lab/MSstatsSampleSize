@@ -36,142 +36,106 @@
 #' @importFrom utils sessionInfo read.table write.table
 #' @importFrom stats lm coef anova
 #'
-estimateVar <- function(data,
-                        annotation, ...) {
-
+estimateVar <- function(data, annotation, ...) {
+    
     ###############################################################################
     ## log file
     ## save process output in each step
     dots <- list(...)
+    session <- dots$session
     if(is.null(dots$log_conn)){
-        conn <- .logGeneration()  
+        conn = mget("LOG_FILE", envir = .GlobalEnv,
+                    ifnotfound = NA)
+        if(is.na(conn)){
+            rm(conn)
+            conn <- .logGeneration()
+        } else{
+            conn <- .logGeneration(file = conn$LOG_FILE)   
+        }
     }else{
         conn <- dots$log_conn
     }
+    
     func <- as.list(sys.call())[[1]]
-    .status("Estimating Variance", log = conn$con, func = func, ...)
-    
-    ###############################################################################
-    ## input checking
-    if(anyDuplicated(colnames(data)) != 0){
-        .status("ERROR: Please check the column names of 'data'. 
-                There are duplicated 'Run'", log = conn$con, func = func, ...)
-        stop("Please check the column names of 'data'.
-             There are duplicated 'Run'.")
-    }
-
-    ## check whether annotation has requried columns
-    required.annotation <- c('Condition', 'BioReplicate', 'Run')
-
-    if (!all(required.annotation %in% colnames(annotation))) {
-
-        missedAnnotation <- which(!(required.annotation %in% colnames(annotation)))
-        .status(sprintf("%s is not provided in Annotation. Please check the annotation file.",
-                        toString(required.annotation[missedAnnotation])),
-                log = conn$con, func = func, ...)
-
-        stop(paste(toString(required.annotation[missedAnnotation]),
-                   "is not provided in Annotation. Please check the annotation file."))
-    }
-
-    if (!all(annotation$Run %in% colnames(data)) &
-        nrow(annotation) == ncol(data)) {
-        .status("ERROR: Please check the annotation file.
-                'Run' must match with the column names of 'data'.",
-                log = conn$con,func = func, ...)
-        stop("Please check the annotation file.
-             'Run' must match with the column names of 'data'.")
-    }
-
-    if (length(unique(annotation$Condition)) < 2){
-        .status("ERROR: Need at least two conditions to do simulation.",
-                log = conn$con, func = func, ...)
-        stop("Need at least two conditions to do simulation.")
-    }
-
-    if (any(is.na(annotation$Run)) |
-        any(is.na(annotation$BioReplicate))|
-        any(is.na(annotation$Condition))){
-        .status("ERROR: NA not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion.",
-                log = conn$con, func = func, ...)
-        stop("NA not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion.")
-    }
-
-    ## match between data and annotation
-    data <- data[, annotation$Run]
-    group <- as.factor(as.character(annotation$Condition))
-
-    if (nrow(data) == 0) {
-        .status("ERROR: Please check the column names of data and Run in annotation.",
-                log = conn$con, func = func, ...)
-        stop("Please check the column names of data and Run in annotation. \n")
-    }
-
-    .status(sprintf("Summary : number of proteins in the input data = %s",
-                    nrow(data)), log = conn$con, func = func)
-    .status(sprintf("Summary : number of samples in the input data = %s",
-                    ncol(data)), log = conn$con, func = func)
-    
-    ###############################################################################
-    .status("Preparing variance analysis", log = conn$con, 
-            func = func)
-    ## unique groups
-    groups <- as.character(unique(group))
-    ngroup <- length(groups)
-    nproteins <- nrow(data)
-
-    GroupVar <- matrix(rep(NA, nproteins * ngroup), ncol = ngroup)
-    GroupMean <- matrix(rep(NA, nproteins * ngroup), ncol = ngroup)
-    SampleMean <- NULL # mean across all the samples
-    Proteins <- NULL # record the proteins to simulate
-    Models <- list()
-    count = 0
-    for (i in seq_len(nrow(data))) {
-        sub<- data.frame(ABUNDANCE = unname(unlist(data[i, ])), GROUP = factor(group), row.names = NULL)
-        sub <- sub[!is.na(sub$ABUNDANCE), ]
-
-        ## train the one-way anova model
-        df.full <- suppressMessages(try(lm(ABUNDANCE ~ GROUP , data = sub), TRUE))
-        if(!inherits(df.full, "try-error")){
-            abun <- coef(df.full)
-            if(length(abun) == ngroup){
-
-                count <- count + 1
-                # total variance in protein abundance
-                var <- anova(df.full)['Residuals', 'Mean Sq']
-                # estimate mean abundance of each group
-                abun[-1] <- abun[1] + abun[-1]
-                names(abun) <- gsub("GROUP", "", names(abun))
-                names(abun)[1] <- setdiff(as.character(groups), names(abun))
-                abun <- abun[groups]
-
-                # save group mean, group variance
-                Models[[rownames(data)[i]]] <- df.full
-                GroupVar[count, ] <- rep(sqrt(var), times=length(abun))
-                GroupMean[count, ] <- abun
-                SampleMean <- c(SampleMean, mean(sub$ABUNDANCE, na.rm = TRUE))
-                Proteins <- c(Proteins, rownames(data)[i])
+    res <- .catch_faults({
+        .status("Estimating Variance", log = conn$con, func = func, ...)
+        .status("Starting Data Check", log = conn$con, func = func, ...)
+        #Check the data for all required conditions of consistency
+        .data_checks(data = data, annotation = annotation)
+        .status("Data Check Complete", log = conn$con, func = func, ...)
+        data <- data[, annotation$Run]
+        group <- as.factor(as.character(annotation$Condition))
+        
+        if (nrow(data) == 0) {
+            stop("CALL_",func,
+                 "_Please check the column names of data and Run in annotation.")
+        }
+        
+        .status(sprintf("Summary : number of proteins in the input data = %s",
+                        nrow(data)), log = conn$con, func = func)
+        .status(sprintf("Summary : number of samples in the input data = %s",
+                        ncol(data)), log = conn$con, func = func)
+        
+        ###############################################################################
+        .status("Preparing variance analysis", log = conn$con, func = func)
+        ## unique groups
+        groups <- as.character(unique(group))
+        ngroup <- length(groups)
+        nproteins <- nrow(data)
+        
+        GroupVar <- matrix(rep(NA, nproteins * ngroup), ncol = ngroup)
+        GroupMean <- matrix(rep(NA, nproteins * ngroup), ncol = ngroup)
+        SampleMean <- NULL # mean across all the samples
+        Proteins <- NULL # record the proteins to simulate
+        Models <- list()
+        count = 0
+        for (i in seq_len(nrow(data))) {
+            sub<- data.frame(ABUNDANCE = unname(unlist(data[i, ])), GROUP = factor(group), row.names = NULL)
+            sub <- sub[!is.na(sub$ABUNDANCE), ]
+            
+            ## train the one-way anova model
+            df.full <- suppressMessages(try(lm(ABUNDANCE ~ GROUP , data = sub), TRUE))
+            if(!inherits(df.full, "try-error")){
+                abun <- coef(df.full)
+                if(length(abun) == ngroup){
+                    
+                    count <- count + 1
+                    # total variance in protein abundance
+                    var <- anova(df.full)['Residuals', 'Mean Sq']
+                    # estimate mean abundance of each group
+                    abun[-1] <- abun[1] + abun[-1]
+                    names(abun) <- gsub("GROUP", "", names(abun))
+                    names(abun)[1] <- setdiff(as.character(groups), names(abun))
+                    abun <- abun[groups]
+                    
+                    # save group mean, group variance
+                    Models[[rownames(data)[i]]] <- df.full
+                    GroupVar[count, ] <- rep(sqrt(var), times=length(abun))
+                    GroupMean[count, ] <- abun
+                    SampleMean <- c(SampleMean, mean(sub$ABUNDANCE, na.rm = TRUE))
+                    Proteins <- c(Proteins, rownames(data)[i])
+                }
             }
         }
-    }
-
-    # only keep the rows with results
-    GroupMean <- GroupMean[1:count, ]
-    GroupMean <- GroupMean[1:count, ]
-    # assign the row and column names
-    rownames(GroupVar) <- Proteins
-    colnames(GroupVar) <- groups
-    rownames(GroupMean) <- Proteins
-    colnames(GroupMean) <- groups
-    names(SampleMean) <- Proteins
-
-    .status("Variance analysis completed.", log = conn$con, func = func)
-    close(conn$con)
+        
+        # only keep the rows with results
+        GroupMean <- GroupMean[1:count, ]
+        GroupMean <- GroupMean[1:count, ]
+        # assign the row and column names
+        rownames(GroupVar) <- Proteins
+        colnames(GroupVar) <- groups
+        rownames(GroupMean) <- Proteins
+        colnames(GroupMean) <- groups
+        names(SampleMean) <- Proteins
+        
+        .status("Variance analysis completed.", log = conn$con, func = func)
+        
+        list(model = Models,
+             protein = Proteins,
+             promean = SampleMean,
+             mu = GroupMean,
+             sigma = GroupVar)
+    }, conn = conn, session = session)
     
-    return(list(model = Models,
-                protein = Proteins,
-                promean = SampleMean,
-                mu = GroupMean,
-                sigma = GroupVar))
+    return(res)
 }
-
