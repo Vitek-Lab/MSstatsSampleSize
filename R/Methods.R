@@ -178,17 +178,87 @@
 #' @return Console logging
 #' @keywords internal
 .status <- function(detail, ...){
-    
     dots <- list(...)
-    dots$func <- ifelse(is.null(dots$func),"'__'", dots$func)
-    mess <- sprintf("%s : Function_%s__Detail__%s", Sys.time(), dots$func, detail)
+    dots$func <- ifelse(is.null(dots$func),"'__'", as.character(dots$func))
+    mess <- sprintf("CALL_%s_%s", dots$func, detail)
     if(!is.null(dots$log)){
-        sink(dots$log, type="message")
-        message(mess)
-        sink(type="message")
+        .log_write(log = mess, log_type = "INFO", conn = dots$log)
     }
     if(!is.null(dots$session) && !is.null(dots$value))
-        shiny::setProgress(value = dots$value, message = "Progress:", detail = detail,
-                           session = dots$session)
-    message(Sys.time(),": ",mess,"...")
+        shiny::setProgress(value = dots$value, message = "Progress:",
+                           detail = detail, session = dots$session)
+    message(Sys.time()," : ",mess,"...")
+}
+
+
+.catch_faults <- function(..., conn, session=NULL){
+    warn <- err <- NULL
+    res <- withCallingHandlers(tryCatch(..., error = function(e) {
+        assign("LOG_FILE", conn$file, envir = .GlobalEnv)
+        err <<- conditionMessage(e)
+        .log_write(log = err, log_type = "ERROR", conn = conn$con)
+        if(!is.null(session)){
+            shiny::showNotification(as.character(err), duration = 20, 
+                                    type = "error",session = session, 
+                                    id = "error") 
+            shiny::validate(shiny::need(is.null(err), as.character(err)))
+        }
+        NULL
+    }), warning = function(w) {
+        warn <<- append(warn, conditionMessage(w))
+        .log_write(log = warn, log_type = "WARNING", conn = conn$con)
+        invokeRestart("muffleWarning")
+    })
+    assign("LOG_FILE", conn$file, envir = .GlobalEnv)
+    close(conn$con)
+    return(res)
+}
+
+
+.log_write <- function(log, log_type, conn){
+    sink(conn, type="message")
+    message(Sys.time()," : ",log_type,"_",log,"...")
+    sink(type="message")
+    if(log_type == 'ERROR'){
+        close(conn)
+    }
+}
+
+.check_missing_values <- function(x){
+    return(apply(x, 2, function(x){
+        any(is.na(x) | is.infinite(x) | is.nan(x) | is.null(x) == T)
+    }))
+}
+
+.data_checks <- function(data, annotation){
+    packageStartupMessage(Sys.time()," : Checking Data for consistency...", 
+                          appendLF = F)
+    func <- as.list(sys.call())[[1]]
+    dups <- any(duplicated(colnames(data)) == T)
+    if(dups){
+        packageStartupMessage(" Failure")
+        stop("CALL_",func,
+             "__Please check the column names of 'data'. There are duplicated 'Run'.")
+    }
+    required.annotation <- c('Condition', 'BioReplicate', 'Run')
+    consistent_cols <- !setequal(required.annotation, colnames(annotation))
+    if(consistent_cols){
+        packageStartupMessage(" Failure")
+        nf <- required.annotation[!colnames(annotation) %in% required.annotation]
+        stop("CALL_", func,"_",nf,
+             " is not provided in Annotation, please check annotation file")
+    }
+    ic <- setequal(annotation$Run, colnames(data)) && nrow(annotation) == ncol(data)
+    if(!ic){
+        packageStartupMessage(" Failure")
+        stop("CALL_",func,"_",
+             "Please check the annotation file. 'Run' must match with the column names of 'data'.") 
+    }
+    missing_values <- .check_missing_values(annotation)
+    if(any(missing_values) == T){
+        packageStartupMessage(" Failure")
+        stop("CALL_",func,
+             "_'NA' not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion.")   
+    }
+    packageStartupMessage(" Success")
 }
