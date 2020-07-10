@@ -42,7 +42,6 @@
 }
 
 
-
 #' For each protein, impute the missing values based on the observed values
 #'
 #' @param data protein abundance data for one protein.
@@ -59,31 +58,6 @@
     return (imputed)
 
 }
-
-
-#' Create log file
-#'
-#' @return \emph{finalfile} The log file name
-#' @return \emph{processout} The current log information
-#' @keywords internal
-.logGeneration <- function(...){
-    dots <- list(...)
-    if(is.null(dots$file)){
-        LOG_DIR <- file.path(getwd(),'logs')
-        dir.create(LOG_DIR, showWarnings = F)
-        FILE <- sprintf("MSstatsSSE_Log_%s.Rout", 
-                        format(Sys.time(),"%Y%m%d%H%M%S"))
-        assign("LOG_FILE", file.path(LOG_DIR, FILE))
-        assign("FILE_CONN", file(LOG_FILE, open='a'))
-        writeLines(capture.output(sessionInfo()), FILE_CONN)
-        writeLines("\n\n ############## LOG ############# \n\n", FILE_CONN)
-    } else{
-        FILE_CONN <- file(dots$file, open = 'a')
-        LOG_FILE <- dots$file
-    }
-    return(list(con = FILE_CONN, file = LOG_FILE))
-}
-    
 
 
 #' For each simulated dataset, calculate predictive accuracy on validation set
@@ -169,14 +143,29 @@
 }
 
 
-
-#' Fit a classification model
+#' Create log file
 #'
-#' @param detail Details of the log entry
-#' @param value value ranging from 0 - 1 for progress bars used only with shiny
-#' @param session A session object for shiny operations
-#' @return Console logging
+#' @return \emph{finalfile} The log file name
+#' @return \emph{processout} The current log information
 #' @keywords internal
+.logGeneration <- function(...){
+    dots <- list(...)
+    if(is.null(dots$file)){
+        LOG_DIR <- file.path(getwd(),'logs')
+        dir.create(LOG_DIR, showWarnings = F)
+        FILE <- sprintf("MSstatsSSE_Log_%s.Rout", 
+                        format(Sys.time(),"%Y%m%d%H%M%S"))
+        assign("LOG_FILE", file.path(LOG_DIR, FILE))
+        assign("FILE_CONN", file(LOG_FILE, open='a'))
+        writeLines(capture.output(sessionInfo()), FILE_CONN)
+        writeLines("\n\n ############## LOG ############# \n\n", FILE_CONN)
+    } else{
+        FILE_CONN <- file(dots$file, open = 'a')
+        LOG_FILE <- dots$file
+    }
+    return(list(con = FILE_CONN, file = LOG_FILE))
+}
+
 .status <- function(detail, ...){
     dots <- list(...)
     dots$func <- ifelse(is.null(dots$func),"'__'", as.character(dots$func))
@@ -189,7 +178,6 @@
                            detail = detail, session = dots$session)
     message(Sys.time()," : ",mess,"...")
 }
-
 
 .catch_faults <- function(..., conn, session=NULL){
     warn <- err <- NULL
@@ -214,7 +202,6 @@
     return(res)
 }
 
-
 .log_write <- function(log, log_type, conn){
     sink(conn, type="message")
     message(Sys.time()," : ",log_type,"_",log,"...")
@@ -230,16 +217,19 @@
     }))
 }
 
-.data_checks <- function(data, annotation){
+.data_checks <- function(data, annotation, conn){
     packageStartupMessage(Sys.time()," : Checking Data for consistency...", 
                           appendLF = F)
     func <- as.list(sys.call())[[1]]
+    
+    #Check for any duplicated column names in the data provided
     dups <- any(duplicated(colnames(data)) == T)
     if(dups){
         packageStartupMessage(" Failure")
         stop("CALL_",func,
              "__Please check the column names of 'data'. There are duplicated 'Run'.")
     }
+    #Check if input data is consistent with the required format
     required.annotation <- c('Condition', 'BioReplicate', 'Run')
     consistent_cols <- !setequal(required.annotation, colnames(annotation))
     if(consistent_cols){
@@ -248,17 +238,149 @@
         stop("CALL_", func,"_",nf,
              " is not provided in Annotation, please check annotation file")
     }
+    
     ic <- setequal(annotation$Run, colnames(data)) && nrow(annotation) == ncol(data)
     if(!ic){
         packageStartupMessage(" Failure")
         stop("CALL_",func,"_",
              "Please check the annotation file. 'Run' must match with the column names of 'data'.") 
     }
+    
+    if(length(unique(annotation$Condition)) < 2){
+        stop("Need at least two conditions to do simulations")
+    }
+    
     missing_values <- .check_missing_values(annotation)
     if(any(missing_values) == T){
         packageStartupMessage(" Failure")
         stop("CALL_",func,
-             "_'NA' not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion.")   
+             "_'NA|NAN|NULL' not permitted in 'Run', 'BioReplicate' or 'Condition' of annotaion.")
     }
+    
+    data <- data[, annotation$Run]
+    group <- as.factor(as.character(annotation$Condition))
+    
+    if (nrow(data) == 0) {
+        stop("CALL_",func,
+             "_Please check the column names of data and Run in annotation.")
+    }
+    
+    temp <- unique(annotation[annotation$Run %in% colnames(data),
+                              c("BioReplicate", "Condition")])
+    temp$Condition <- factor(temp$Condition)
+    temp$BioReplicate <- factor(temp$BioReplicate)
+    if(any(table(temp$Condition) < 3)){
+        stop("CALL_",func,
+             "_Each condition must have at least three biological replicates.")
+    }
+    
     packageStartupMessage(" Success")
+    return(list("data" = data, "group" = group))
+}
+
+
+.log2_trans <- function(trans, data, conn, ...){
+    func <- as.list(sys.call())[[1]]
+    if(!is.logical(trans)){
+        stop("CALL_", func,
+             "_log2Trans should be logical. Please provide either TRUE or FALSE")
+    }
+    data <- log2(data)
+    .status(detail = "Negative values if any where replaced with NA",
+            log = conn$con, func = func, ...)
+    data[!is.na(data) & data < 0] <- NA
+    return(data)
+}
+
+
+#' @title Plot PCA outputs
+#' @description A utility wrapper for plotting pca data as returned by the `do_prcomp()`
+#' @param data A data frame containing the Principal components to be plotted
+#' @param exp_var A vector containing numeric values of the expected variance
+.pca_plot <- function(data, exp_var, ...){
+    dots <- list(...)
+    p <- ggplot(data = data,
+                aes(x = PC1, y = PC2, color = group)) +
+        geom_point(size =  ifelse(is.null(dots$dot_size), 3, dots$dot_size)) + 
+        stat_ellipse()+
+        labs(title = ifelse(is.null(dots$title),"Input dataset", dots$title),
+             x = sprintf("PC1 (%s%% explained var.)",exp_var[1]),
+             y = sprintf("PC2 (%s%% explained var.)",exp_var[2])) +
+        theme_MSstats(...)
+    return(p)
+}
+
+
+#' @title Do Principal Component Analysis
+#' @description A wrapper function to the base `prcomp()` formats the results 
+#' in a required output format
+#' @param sim_x A dataframe of the feature variables
+#' @param sim_y A dataframe of the predictor vairable
+#' @return A named list of the outputs 
+.do_prcomp <- function(sim_x, sim_y){
+    result.pca <- prcomp(sim_x, scale. = TRUE)
+    summary.pca <- summary(result.pca)
+    important.pc <- result.pca$x[, 1:2]
+    pc.result <- data.frame(important.pc, group = sim_y)
+    exp.var <- summary.pca$importance
+    exp.var <- format(exp.var[2, 1:2] * 100, digits = 3)
+    return(list("pc.result" = pc.result, "exp.var" = exp.var))
+}
+
+
+#' @title MSstats Theme
+#' @description A utility function that standardized all the ggplot themes
+#' @param x.axis.size A numeric value for size for the elements on the x-axis
+#' @param y.axis.size A numeric value for size for the elements on the y-axis
+#' @param legend.size A numeric value fot the size of the legend
+theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10, 
+                          legend.size = 11, margin = 0.5, leg.dir="horizontal",
+                          download = F,...){
+    
+    dots <- list(...)
+    x.axis.size <- ifelse(is.null(dots$x.axis.size), x.axis.size,
+                          dots$x.axis.size)
+    
+    y.axis.size <- ifelse(is.null(dots$y.axis.size), y.axis.size,
+                          dots$y.axis.size)
+    
+    legend.size <- ifelse(is.null(dots$legend.size), legend.size,
+                          dots$legend.size)
+    leg.dir <- ifelse(is.null(dots$leg.dir), leg.dir,
+                      dots$leg.dir)
+    download <- ifelse(is.null(dots$download), download,
+                       dots$download)
+    leg.pos <- ifelse(is.null(dots$leg.pos), "top", dots$leg.pos)
+    
+    th <- ggplot2::theme(panel.background = element_rect(fill = "white", 
+                                                         colour = "black"),
+                         panel.grid.major = element_line(colour = "gray95"), 
+                         panel.grid.minor = element_blank(), 
+                         strip.background = element_rect(fill = "gray95"), 
+                         strip.text.x = element_text(colour = c("#00B0F6"), 
+                                                     size = 14),
+                         axis.text.x = element_text(size = x.axis.size, 
+                                                    colour = "black"), 
+                         axis.text.y = element_text(size = y.axis.size, 
+                                                    colour = "black"),
+                         axis.ticks = element_line(colour = "black"), 
+                         axis.title.x = element_text(size = x.axis.size + 5,
+                                                     vjust = -0.4), 
+                         axis.title.y = element_text(size = y.axis.size + 5,
+                                                     vjust = 0.3),
+                         title = element_text(size = x.axis.size + 4,
+                                              vjust = 1.5),
+                         legend.key = element_rect(fill = "white", 
+                                                   colour = "white"),
+                         legend.direction = leg.dir,
+                         legend.text = element_text(size = legend.size), 
+                         legend.title = element_blank(),
+                         legend.position = leg.pos,
+                         plot.margin = unit(rep(margin,4), "cm"))
+    
+    if(!download)
+        th <- th + ggplot2::theme(legend.position=c(1, 1.05),
+                                  legend.justification="right")
+    
+    return(th)
 }
