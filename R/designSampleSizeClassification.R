@@ -89,153 +89,148 @@ designSampleSizeClassification <- function(simulations,
                                            classifier = "rf",
                                            top_K = 10,
                                            parallel = FALSE, ...) {
-
+    
     ###############################################################################
     ## log file
     ## save process output in each step
     dots <- list(...)
+    session <- dots$session
+    func <- as.list(sys.call())[[1]]
     if(is.null(dots$log_conn)){
-        conn <- .logGeneration()  
+        conn = mget("LOG_FILE", envir = .GlobalEnv,
+                    ifnotfound = NA)
+        if(is.na(conn)){
+            rm(conn)
+            conn <- .logGeneration()
+        } else{
+            conn <- .logGeneration(file = conn$LOG_FILE)   
+        }
     }else{
         conn <- dots$log_conn
     }
-    func <- as.list(sys.call())[[1]]
-    .status("", log = con$con, func = func)
-
-    ###############################################################################
-    ## Input and option checking
-
-    ## 1. input  should be the output of SimulateDataset function
-    if ( !is.element('simulation_train_Xs', names(simulations)) | 
-         !is.element('simulation_train_Ys', names(simulations)) ) {
+    res <- .catch_faults({
+        ###############################################################################
+        ## Input and option checking
         
-        .status("ERROR: The required input - simulations : did not process from 
-                simulateDataset function.", log = con$con, 
+        ## 1. input  should be the output of SimulateDataset function
+        if ( !is.element('simulation_train_Xs', names(simulations)) | 
+             !is.element('simulation_train_Ys', names(simulations)) ) {
+            
+            stop("CALL_",func,"Please use 'SimulateDataset' first. Then use ",
+                 "output of simulateDataset function as input in ",
+                 "designSampleSizeClassification.")
+        }
+        
+        ## 2. input for classifier option
+        if ( !any(classifier == c('rf', 'nnet', 'svmLinear', 'logreg', 'naive_bayes')) ) {
+            stop("CALL_",func,"`classifier` should be one of 'rf', 'nnet',",
+                 "'svmLinear', 'logreg', and 'naive_bayes'. Please check it.")
+        }
+        .status(sprintf("classifier : %s", classifier), log = conn$con, 
                 func = func)
-        stop("Please use 'SimulateDataset' first. Then use output of 
-             simulateDataset function as input in designSampleSizeClassification.")
-    }
-
-    ## 2. input for classifier option
-    if ( !any(classifier == c('rf', 'nnet', 'svmLinear', 'logreg', 'naive_bayes')) ) {
-       .status("ERROR: `classifier` should be one of 'rf', 'nnet', 'svmLinear', 
-               'logreg', and 'naive_bayes'. Please check it.",
-               log = con$con, func = func)
-        stop("`classifier` should be one of 'rf', 'nnet', 'svmLinear', 'logreg',
-             and 'naive_bayes'. Please check it.")
-    }
-    .status(sprintf("classifier : %s", classifier), log = con$con, 
-            func = func)
-
-    ## 3. input for top_K option
-    if (is.null(top_K) ) {
-        .status("ERROR : top_K is required. Please provide the value for top_K.",
-                log = con$con, func = func)
-        stop("top_K is required. Please provide the value for top_K. \n")
-
-    } else if ( top_K < 0 | top_K > simulations$num_proteins ) {
-        .status(sprintf("ERROR : top_K should be between 0 and the total number 
-                        of protein(%s) Please check the value for top_K",
-                        simulations$num_proteins), log = con$con, 
-                        func = func)
         
-        stop(sprintf("top_K should be between 0 and the total number of 
+        ## 3. input for top_K option
+        if (is.null(top_K) ) {
+            stop("CALL_",func,"top_K is required. Please provide the value for top_K.")
+            
+        } else if ( top_K < 0 | top_K > simulations$num_proteins ) {
+            stop("CALL_",func,
+                 sprintf("_top_K should be between 0 and the total number of 
                      protein (%s).  Please check the value for top_K", 
-                     simulations$num_proteins))
-    }
-    .status(sprintf("top_K = %s", top_K), log = con$con, func = func)
-    
-    ###############################################################################
-    ## start to train classifier
-
-    .status("Start to train classifier...", log = con$con, func = func)
-    
-    ## get the validation set for prediction
-    iter <- length(simulations$simulation_train_Xs) # number of simulations
-    num_proteins <- simulations$num_proteins
-    num_samples <- simulations$num_samples
-    valid_x <- simulations$valid_X
-    valid_y <- simulations$valid_Y
-
-    ## if parallel TRUE,
-    if(parallel){
-        .status("Using parallel backend", log = con$con, func = func)
-        ## fit the classifier for each simulation dataset
-        results <- bplapply(seq_len(iter), .classificationPerformance,
-                            classifier=classifier,
-                            train_x_list = simulations$simulation_train_Xs,
-                            train_y_list = simulations$simulation_train_Ys,
-                            valid_x = valid_x,
-                            valid_y = valid_y,
-                            top_K = top_K)
-
-
-    } else { 
-        ## fit the classifier for each simulation dataset
-        results <- lapply(seq_len(iter),
-                          .classificationPerformance,
-                          classifier=classifier,
-                          train_x_list = simulations$simulation_train_Xs,
-                          train_y_list = simulations$simulation_train_Ys,
-                          valid_x = valid_x,
-                          valid_y = valid_y,
-                          top_K = top_K)
-
-    }
-
-    ## calculate the mean predictive accuracy over all the simulations
-    PA <- NULL
-
-    ## calculate the frequency a protein is selected as important (biomarker candidates)
-    FI <- NULL
-    features <- rownames(varImp(results[[1]]$model, scale = TRUE)$importance)
-
-    for (i in seq_len(iter)) {
-        # record the importance of each protein
-        PA <- c(PA, results[[i]]$acc)
-
-        # record the importance of each protein
-        imp <- varImp(results[[i]]$model, scale = TRUE)$importance
-        # select the top-k important proteins
-        imp.prots <- rownames(imp)[order(imp, decreasing=TRUE)][seq_len(top_K)]
-        # if important, set 1; otherwise,set 0
-        imp$Important <- ifelse(rownames(imp) %in% imp.prots, 1, 0)
-
-        FI <- cbind(FI, imp[features, "Important"])
-
-    }
-
-    ## report the training and validating done
-    .status("Finish to train classifier and to check the performance.", 
-            log = con$con, func = func)
-
-    # assign simulation index
-    simulation_index <- paste0("simulation", seq_len(iter))
-    rownames(FI) <- features
-    colnames(FI) <- simulation_index
-    names(PA) <- simulation_index
-
-    # calculate mean predictive accuracy
-    meanPA <-  mean(PA)
-
-    # calculate mean feature importance
-    meanFI <-  rowSums(FI)
-    names(meanFI) <- features
-    # sort in descending order
-    meanFI <- sort(meanFI, decreasing=TRUE)
-
-    .status("Report the mean predictive accuracy and mean feature importance.",
-            log = con$con, func = func)
-    close(con$con)
-
-    return(list(num_proteins = num_proteins, # number of proteins
-                num_samples = num_samples, # number of samples per group
-                mean_predictive_accuracy = meanPA, # mean predictive accuracy
-                mean_feature_importance = meanFI, # vector of mean feature importance
-                predictive_accuracy = PA, # vector of predictive accuracy
-                feature_importance = FI,  # matrix of feature importance
-                results = results # fitted models
-                ))
-
+                         simulations$num_proteins))
+        }
+        .status(sprintf("top_K = %s", top_K), log = conn$con, func = func)
+        
+        ###############################################################################
+        ## start to train classifier
+        
+        .status("Start to train classifier...", log = conn$con, func = func)
+        
+        ## get the validation set for prediction
+        iter <- length(simulations$simulation_train_Xs) # number of simulations
+        num_proteins <- simulations$num_proteins
+        num_samples <- simulations$num_samples
+        valid_x <- simulations$valid_X
+        valid_y <- simulations$valid_Y
+        
+        ## if parallel TRUE,
+        if(parallel){
+            .status("Using parallel backend", log = conn$con, func = func)
+            ## fit the classifier for each simulation dataset
+            results <- bplapply(seq_len(iter), .classificationPerformance,
+                                classifier=classifier,
+                                train_x_list = simulations$simulation_train_Xs,
+                                train_y_list = simulations$simulation_train_Ys,
+                                valid_x = valid_x,
+                                valid_y = valid_y,
+                                top_K = top_K)
+            
+            
+        } else { 
+            ## fit the classifier for each simulation dataset
+            results <- lapply(seq_len(iter),
+                              .classificationPerformance,
+                              classifier=classifier,
+                              train_x_list = simulations$simulation_train_Xs,
+                              train_y_list = simulations$simulation_train_Ys,
+                              valid_x = valid_x,
+                              valid_y = valid_y,
+                              top_K = top_K)
+            
+        }
+        
+        ## calculate the mean predictive accuracy over all the simulations
+        PA <- NULL
+        
+        ## calculate the frequency a protein is selected as important (biomarker candidates)
+        FI <- NULL
+        features <- rownames(varImp(results[[1]]$model, scale = TRUE)$importance)
+        
+        for (i in seq_len(iter)) {
+            # record the importance of each protein
+            PA <- c(PA, results[[i]]$acc)
+            
+            # record the importance of each protein
+            imp <- varImp(results[[i]]$model, scale = TRUE)$importance
+            # select the top-k important proteins
+            imp.prots <- rownames(imp)[order(imp, decreasing=TRUE)][seq_len(top_K)]
+            # if important, set 1; otherwise,set 0
+            imp$Important <- ifelse(rownames(imp) %in% imp.prots, 1, 0)
+            
+            FI <- cbind(FI, imp[features, "Important"])
+            
+        }
+        
+        ## report the training and validating done
+        .status("Finish to train classifier and to check the performance.", 
+                log = conn$con, func = func)
+        
+        # assign simulation index
+        simulation_index <- paste0("simulation", seq_len(iter))
+        rownames(FI) <- features
+        colnames(FI) <- simulation_index
+        names(PA) <- simulation_index
+        
+        # calculate mean predictive accuracy
+        meanPA <-  mean(PA)
+        
+        # calculate mean feature importance
+        meanFI <-  rowSums(FI)
+        names(meanFI) <- features
+        # sort in descending order
+        meanFI <- sort(meanFI, decreasing=TRUE)
+        
+        .status("Report the mean predictive accuracy and mean feature importance.",
+                log = conn$con, func = func)
+        
+        list(num_proteins = num_proteins, # number of proteins
+             num_samples = num_samples, # number of samples per group
+             mean_predictive_accuracy = meanPA, # mean predictive accuracy
+             mean_feature_importance = meanFI, # vector of mean feature importance
+             predictive_accuracy = PA, # vector of predictive accuracy
+             feature_importance = FI,  # matrix of feature importance
+             results = results # fitted models
+        )
+    }, conn = conn, session = session)
+    return(res)
 }
-
