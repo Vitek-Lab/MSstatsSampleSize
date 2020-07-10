@@ -131,12 +131,7 @@ simulateDataset <- function(data,
                             simulate_validation = FALSE,
                             valid_samples_per_group = 50, ...) {
     
-    ## Estimate the mean abundance and variance of each protein in each phenotype group
-    parameters <- estimateVar(data = data,
-                              annotation = annotation,
-                              log2Trans = log2Trans, ...)
-    
-    ##### 1. log file save process output in each step ####
+    #### 1. log file save process output in each step ####
     dots <- list(...)
     session <- dots$session
     func <- as.list(sys.call())[[1]]
@@ -152,23 +147,35 @@ simulateDataset <- function(data,
     }else{
         conn <- dots$log_conn
     }
+    
+    ##### Simulation Process ####
     res <- .catch_faults({
-        data <- parameters$data
+        
+        if(is.null(dots$parameters)){
+            parameters <- estimateVar(data = data, annotation = annotation, 
+                                      log2Trans = log2Trans) 
+        }else{
+            .status(detail = "Using provided estimated means and variance",
+                    log = conn$con, func = func, ...)
+            parameters <- dots$parameters
+        }
+        
+        
         data <- data[, annotation$Run]
         group <- as.factor(as.character(annotation$Condition))
         
         ##### 2. check input for option ####
         #### 2.1 number of simulation : any lower limit? ####
         if(num_simulations < 10){
-            stop("Please use more than 10 simulations.")
+            stop("CALL_", func, "_Please use more than 10 simulations.")
         }
         .status(detail = sprintf("Number of Simulations = %s", num_simulations),
                 log = conn$con, func = func, ...)
         
         #### 2.2 samples_per_group ####
         if(!is.numeric(samples_per_group)){
-            stop("sample_per_group should be numeric. Please provide the numeric",
-                 "value for samples_per_group.")
+            stop("CALL_",func,"_sample_per_group should be numeric. Please",
+                 "provide the numericvalue for samples_per_group.")
         } else if (samples_per_group%%1 != 0){ ## not integer, then round
             samples_per_group <- round(samples_per_group)
             .status(detail = "samples_per_group should be integer. 
@@ -181,7 +188,8 @@ simulateDataset <- function(data,
         #### 2.3 protein_rank ####
         if(!protein_rank %in% c("mean", "sd", "combined") | 
            length(protein_rank) > 1) {
-            stop("protein_rank should be `mean` or `sd` or `combined`. Please check it.")
+            stop("CALL_",func,"_protein_rank should be `mean` or `sd` or",
+                 "`combined`. Please check it.")
         }
         .status(detail = sprintf("protein_rank = %s", protein_rank), 
                 log = conn$con, func = func, ...)
@@ -189,13 +197,13 @@ simulateDataset <- function(data,
         #### 2.4 protein_select ####
         if(protein_rank == "combined"){
             if(length(protein_select) != 2 | !all(protein_select %in% c("high", "low"))){
-                stop("When protein_rank = `combined`, protein_select should have",
-                     "two values, each of which should be either `low` or `high`.",
-                     "Please check it.")
+                stop("CALL_",func,"_When protein_rank = `combined`, ",
+                     "protein_select should have two values, each of which ",
+                     "should be either `low` or `high`. Please check it.")
             }
         } else{
             if(length(protein_select) != 1 | !all(protein_select %in% c("high", "low"))){
-                stop("protein_select should be either `low` or `high`.",
+                stop("CALL_",func,"_protein_select should be either `low` or `high`.",
                      "Please check it.")
             }
         }
@@ -207,7 +215,8 @@ simulateDataset <- function(data,
             if(length(protein_quantile_cutoff) != 2 |
                any(protein_quantile_cutoff < 0) |
                any(protein_quantile_cutoff > 1)){
-                stop("When protein_rank = `combined`, protein_quantile_cutoff should",
+                stop("CALL_",func,"_When protein_rank = `combined`, ",
+                     "protein_quantile_cutoff should",
                      "have two values, each of which should be between 0 and 1.",
                      "Please check it.")
             }
@@ -215,8 +224,8 @@ simulateDataset <- function(data,
             if(length(protein_quantile_cutoff) != 1 |
                any(protein_quantile_cutoff < 0) |
                any(protein_quantile_cutoff > 1)){
-                stop("protein_quantile_cutoff should be between 0 and 1.",
-                     "Please check it.")
+                stop("CALL_",func,"protein_quantile_cutoff should be between 0",
+                     "and 1. Please check it.")
             }
         }
         .status(detail = sprintf("protein_quantile_cutoff = %s",
@@ -224,7 +233,7 @@ simulateDataset <- function(data,
                 log = conn$con, func = func, ...)
         #### 2.6 expected_FC and list_diff_proteins ####
         if ( !is.element("data", expected_FC) & !is.element(1, expected_FC) ) {
-            stop("expected_FC should be `data` or a vector including 1.",
+            stop("CALL_", func,"_expected_FC should be `data` or a vector including 1.",
                  "Please check it.")
         }
         
@@ -235,8 +244,8 @@ simulateDataset <- function(data,
         
         #### 2.7 list_diff_proteins ####
         if(is.numeric(expected_FC) & is.null(list_diff_proteins)) {
-            stop("list_diff_proteins are required for predefined expected_FC.",
-                 "Please provide the vector for list_diff_proteins.")
+            stop("CALL_",func,"list_diff_proteins are required for predefined",
+                 "expected_FC. Please provide the vector for list_diff_proteins.")
         }
         
         if(!is.element("data", expected_FC)){
@@ -247,7 +256,7 @@ simulateDataset <- function(data,
         
         #### 2.8 simulated value ####
         if(!is.logical(simulate_validation)) {
-            stop("simulate_validation should be logical.",
+            stop("CALL_",func,"simulate_validation should be logical.",
                  "Please provide either TRUE or FALSE for simulate_validation.")
         }
         .status(detail = sprintf("simulate_validaiton = %s", simulate_validation),
@@ -256,8 +265,9 @@ simulateDataset <- function(data,
         #### 2.9 valid_samples_per_group ####
         if(simulate_validation & (is.null(valid_samples_per_group) | 
                                   !is.numeric(valid_samples_per_group))) {
-            stop("valid_samples_per_group is required for simulate_validation=TRUE.",
-                 "Please provide the numeric value for valid_samples_per_group.")
+            stop("CALL_",func,"valid_samples_per_group is required for",
+                 "simulate_validation=TRUE. Please provide the numeric value",
+                 "for valid_samples_per_group.")
         }
         .status(detail = sprintf("valid_samples_per_group = %s",
                                  valid_samples_per_group),
@@ -403,6 +413,6 @@ simulateDataset <- function(data,
              valid_X = valid_X,
              valid_Y = valid_Y)
     }, conn = conn, session = session)
-    
+    #### Return ####
     return(res)
 }
