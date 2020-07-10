@@ -59,193 +59,89 @@
 #' @importFrom stats prcomp
 #' @export
 #'
-designSampleSizePCAplot <- function(simulations,
-                                    which.PCA = "all",
-                                    x.axis.size = 10,
-                                    y.axis.size = 10,
-                                    dot.size = 3,
-                                    legend.size = 7,
-                                    width = 6,
-                                    height = 5,
-                                    address = "", ...) {
-
+designSampleSizePCAplot <- function(simulations, which.PCA = "all", save.pdf = T,
+                                    ...) {
+    
     ###############################################################################
     ## log file
     ## save process output in each step
     dots <- list(...)
+    session <- dots$session
+    func <- as.list(sys.call())[[1]]
+    pc_plot <- list()
     if(is.null(dots$log_conn)){
-        conn <- .logGeneration()  
+        conn = mget("LOG_FILE", envir = .GlobalEnv,
+                    ifnotfound = NA)
+        if(is.na(conn)){
+            rm(conn)
+            conn <- .logGeneration()
+        } else{
+            conn <- .logGeneration(file = conn$LOG_FILE)   
+        }
     }else{
         conn <- dots$log_conn
     }
-    func <- as.list(sys.call())[[1]]
-
+    
     ## parameter checking: which.PCA
-    if (!(length(which.PCA) == 1 &
-        (which.PCA %in% c("all", "data") |
-         (startsWith(which.PCA, "simulation"))))) {
-
-        .status("ERROR : which.PCA should be one of 'all', 'data' or 
-                'simulation + index of simulation' (such as 'simulation1').")
-        stop("which.PCA should be one of 'all', 'data' or 
-             'simulation + index of simulation' (such as 'simulation1').")
-
-    }
-
-    .status(sprintf("which.PCA = %s", which.PCA), log = conn$con, func = func)
-
-    ###############################################################################
-    ## number of simulations
-    iter <- length(simulations$simulation_train_Xs)
-
-    if (address != FALSE) {
-        allfiles <- list.files()
-
-        num <- 0
-        plotfilenaming <- paste0(address, "PCAPlot")
-        plotfinalfile <- paste0(address, "PCAPlot.pdf")
-
-        while (is.element(plotfinalfile, allfiles)) {
-            num <- num + 1
-            plotfinalfile <- paste0(paste(plotfilenaming, num, sep="-"), ".pdf")
-        }
-
-        pdf(plotfinalfile, width=width, height=height)
-    }
-
-    #########################################
-    # draw the first PCA plot on the input preliminary dataset
-    input <- simulations$input_X
-    input.group <- simulations$input_Y
-    input.group <- factor(input.group, levels=sort(levels(input.group)))
-
-    if(which.PCA == "all" | which.PCA == "allonly"){
-        ## PCA
-        result.pca <- prcomp(input, scale. = TRUE)
-        summary.pca <- summary(result.pca)
-        # $x : the values of each sample in terms of the principal components
-
-        # extract PC1 and PC2
-        important.pc <- result.pca$x[, 1:2]
-        pc.result <- data.frame(important.pc, group=input.group)
-
-        # get explained var. : 'Proportion of variance'
-        exp.var <- summary.pca$importance
-        exp.var <- format(exp.var[2, 1:2]*100, digits=3)
-
-        ## PC1 and PC2 are not scaled like biplot
-        pcaplot <- ggplot(data = pc.result,
-                          aes_string(x = 'PC1', y = 'PC2', color = 'group')) +
-            geom_point(size = dot.size) +
-            stat_ellipse() +
-            labs(title = "Input dataset",
-                 x = paste0("PC1 (", exp.var[1], "% explained var.)"),
-                 y = paste0("PC2 (", exp.var[2], "% explained var.)")) +
-            theme(
-                panel.background = element_rect(fill = 'white', colour = "black"),
-                panel.grid.major = element_line(colour = 'gray95'),
-                panel.grid.minor = element_blank(),
-                strip.background=element_rect(fill = 'gray95'),
-                strip.text.x=element_text(colour = c("#00B0F6"), size=14),
-                axis.text.x=element_text(size=x.axis.size, colour="black"),
-                axis.text.y=element_text(size=y.axis.size, colour="black"),
-                axis.ticks=element_line(colour="black"),
-                axis.title.x=element_text(size=x.axis.size+5, vjust=-0.4),
-                axis.title.y=element_text(size=y.axis.size+5, vjust=0.3),
-                title=element_text(size=x.axis.size+8, vjust=1.5),
-                legend.key = element_rect(fill='white', colour='white'),
-                legend.position="right",
-                legend.text=element_text(size=legend.size),
-                legend.title = element_blank())
-
-        print(pcaplot)
-
-        .status("Drew the PCA plot for input preliminary dataset", log = conn$con,
-                func = func)
-    }
-
-
-    #########################################
-    # draw the PCA plot for simulation data
-    if(which.PCA == "all" | startsWith(which.PCA, "simulation")){
-        if(which.PCA == "all") {
-            index <- seq_len(iter) # draw plots for all the simulations
-
-        } else{
-            which.PCA <- gsub("simulation", "", which.PCA)
-            index <- as.integer(which.PCA)
-
-            if(index > iter){
-                .status(sprintf("ERROR: which.PCA should be one of 'all', 'data'
-                or 'simulation + index of simulation'. index must be no bigger 
-                                than %s", iter), log = conn$con, func = func)
-
-                stop("which.PCA should be one of 'all', 'data' or 
-                     'simulation + index of simulation'. index must be no bigger
-                     than", iter)
-            }
-
-        }
-
-        for(i in seq_along(index)) {
-
-            # prepare the data for PCA analysis
-            input <- simulations$simulation_train_Xs[[index[i]]]
-            input.group <- simulations$simulation_train_Ys[[index[i]]]
-            input.group <- factor(input.group, levels=sort(levels(input.group)))
-
-            ## PCA
-            result.pca <- prcomp(input, scale. = TRUE)
-            ## There are two different scaling ( in the prcomp function, in the autoplot function)
-            ## 1. http://www.sthda.com/english/wiki/ggfortify-extension-to-ggplot2-to-handle-some-popular-packages-r-software-and-data-visualization
-            ## 2. https://cran.r-project.org/web/packages/ggfortify/vignettes/plot_pca.html
-            summary.pca <- summary(result.pca)
-            # $x : the values of each sample in terms of the principal components
-
-            # extract PC1 and PC2
-            important.pc <- result.pca$x[, 1:2]
-
-            pc.result <- data.frame(important.pc, group=input.group)
-
-            # get explained var. : 'Proportion of variance'
-            exp.var <- summary.pca$importance
-            exp.var <- format(exp.var[2, 1:2]*100, digits=3)
-
-            ## PC1 and PC2 are not scaled like biplot
-            pcaplot <- ggplot(data = pc.result,
-                              aes_string(x = 'PC1', y = 'PC2', color = 'group')) +
-                geom_point(size = dot.size) +
-                stat_ellipse() +
-                labs(title = paste0("Simulation:", index[i]),
-                     x = paste0("PC1 (", exp.var[1], "% explained var.)"),
-                     y = paste0("PC2 (", exp.var[2], "% explained var.)")) +
-                theme(
-                    panel.background = element_rect(fill = 'white', colour = "black"),
-                    panel.grid.major = element_line(colour = 'gray95'),
-                    panel.grid.minor = element_blank(),
-                    strip.background=element_rect(fill = 'gray95'),
-                    strip.text.x=element_text(colour = c("#00B0F6"), size=14),
-                    axis.text.x=element_text(size=x.axis.size, colour="black"),
-                    axis.text.y=element_text(size=y.axis.size, colour="black"),
-                    axis.ticks=element_line(colour="black"),
-                    axis.title.x=element_text(size=x.axis.size+5, vjust=-0.4),
-                    axis.title.y=element_text(size=y.axis.size+5, vjust=0.3),
-                    title=element_text(size=x.axis.size+8, vjust=1.5),
-                    legend.key = element_rect(fill='white', colour='white'),
-                    legend.position="right",
-                    legend.text=element_text(size=legend.size),
-                    legend.title = element_blank())
-
-            print(pcaplot)
-
-            .status(sprintf("Drew the PCA plot for simulation %s", index[i]), 
-                    log = conn$con, func = func)
-        }
-        
+    if (!(length(which.PCA) == 1 & (which.PCA %in% c("all", "data") |
+                                    (startsWith(which.PCA, "simulation"))))) {
+        stop("CALL_",func,"_which.PCA should be one of 'all', 'data' or ",
+             "'simulation + index of simulation' (such as 'simulation1').")
     }
     
-    if (address != FALSE) {
-        dev.off()
+    .status(sprintf("which.PCA = %s", which.PCA), log = conn$con, func = func)
+    
+    if(grepl("simulation", which.PCA) | which.PCA == "all"){
+        index <- length(simulations$simulation_train_Xs)
+        iter <- as.numeric(gsub("[[:alpha:]]","",which.PCA))
+        if(!is.na(iter)){
+            iters <- iter
+        }else{
+            iters <- seq_len(index)
+        }
+        
+        for(i in iters){
+            title <- ifelse(is.na(iter),
+                            sprintf("Simulation: %s", i),
+                            sprintf("Simulation: %s", iter))
+            pr_comp <- .do_prcomp(sim = simulations$simulation_train_Xs[[i]],
+                                  sim_y = simulations$simulation_train_Ys[[i]])
+            pc_plot[[i]] <- .pca_plot(data = pr_comp$pc.result, exp_var = pr_comp$exp.var
+                                      ,title = title, ...)
+            .status(detail = sprintf("Plotted %s of %s", i, length(iters)),
+                    log = conn$con, func = func, ...)
+        }
+        
+        if(which.PCA == 'all'){
+            pr_comp <- .do_prcomp(simulations$input_X, simulations$input_Y)
+            pc_plot_ip <- .pca_plot(data = pr_comp$pc.result, exp_var = pr_comp$exp.var,
+                                    title = "Input Dataset", ...)
+            pc_plot <- append(list(pc_plot_ip), pc_plot)
+        }
+    }else if(which.PCA == 'data'){
+        pr_comp <- .do_prcomp(simulations$input_X, simulations$input_Y)
+        pc_plot <- .pca_plot(data = pr_comp$pc.result, exp_var = pr_comp$exp.var,
+                             title = "Input Dataset", ...)
+    }else{
+        stop("Improper which arguement provided, should be either 'all', 'data' or",
+             "'simulation'+index, example ='simulation1'")
     }
-    close(conn$con)
+    
+    
+    if(save.pdf | !grepl("simulation", which.PCA)){
+        if(!save.pdf){
+            warning("CALL_",func,"_All PCA's requested, forcing file save")
+        }
+        file_name <- file.path(getwd(), sprintf("PCA_Plot_%s.pdf",
+                                                format(Sys.time(), "%Y%m%d%H%M")))
+        pdf(file = file_name, width = 8.5, height = 8.5)
+        for(i in seq_along(pc_plot)){
+            print(pc_plot[[i]])
+        }
+        dev.off()
+        .status(detail = sprintf("Plots saved at %s", file_name), log = conn$con, 
+                func =func)
+    } else{
+        return(pc_plot[[iter]])
+    }
 }
