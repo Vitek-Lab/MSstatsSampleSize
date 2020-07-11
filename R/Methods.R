@@ -78,16 +78,15 @@
 
     pred.features <- .feature_importance(model, classifier, top_K)
 
-    pred.model <- .classification_model(x = x[, pred.features$sel_imp], y = y,
+    pred.model <- .classification_model(x = x[, pred.features], y = y,
                                        classifier = classifier, tunegrid = tunegrid)
 
     ## Predict validation data
-    pred_y <- predict(pred.model, valid_x[, pred.features$sel_imp])
-
+    pred_y <- predict(pred.model, valid_x[, pred.features])
     ## Calculate predictive accuracy on validation data
     acc <- sum(diag(table(pred_y, valid_y))) / length(pred_y)
     ## record the predictive accuracy and train model
-    run <- list(acc = acc, model = model, f_imp = pred.features$f_imp)
+    run <- list(acc = acc, f_imp = pred.features)
     return(run)
 }
 
@@ -103,7 +102,7 @@
     }
     setorder(i_ff, -Overall)
     sel_imp <- i_ff[1:top_K][!is.na(rn), rn]
-    return(list(sel_imp = sel_imp, f_imp = i_ff))
+    return(sel_imp)
 }
 
 

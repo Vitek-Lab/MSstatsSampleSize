@@ -152,30 +152,28 @@ designSampleSizeClassification <- function(simulations,
         num_samples <- simulations$num_samples
         valid_x <- simulations$valid_X
         valid_y <- simulations$valid_Y
-        
+        tunegrid <- .tuning_params(classifier = classifier)
         ## if parallel TRUE,
         if(parallel){
             .status("Using parallel backend", log = conn$con, func = func)
             ## fit the classifier for each simulation dataset
-            results <- bplapply(seq_len(iter), .classificationPerformance,
+            results <- bplapply(seq_len(iter), .classification_performance,
                                 classifier=classifier,
                                 train_x_list = simulations$simulation_train_Xs,
                                 train_y_list = simulations$simulation_train_Ys,
-                                valid_x = valid_x,
-                                valid_y = valid_y,
-                                top_K = top_K)
+                                valid_x = valid_x, valid_y = valid_y,
+                                top_K = top_K, tunegrid = tunegrid)
             
             
         } else { 
             ## fit the classifier for each simulation dataset
             results <- lapply(seq_len(iter),
-                              .classificationPerformance,
+                              .classification_performance,
                               classifier=classifier,
                               train_x_list = simulations$simulation_train_Xs,
                               train_y_list = simulations$simulation_train_Ys,
-                              valid_x = valid_x,
-                              valid_y = valid_y,
-                              top_K = top_K)
+                              valid_x = valid_x,  valid_y = valid_y,
+                              top_K = top_K,  tunegrid = tunegrid)
             
         }
         
@@ -183,40 +181,27 @@ designSampleSizeClassification <- function(simulations,
         PA <- NULL
         
         ## calculate the frequency a protein is selected as important (biomarker candidates)
-        FI <- NULL
-        features <- rownames(varImp(results[[1]]$model, scale = TRUE)$importance)
+        FI <- data.table::data.table('proteins' = names(valid_x))
         
-        for (i in seq_len(iter)) {
+        for (i in seq_along(results)) {
             # record the importance of each protein
             PA <- c(PA, results[[i]]$acc)
-            
-            # record the importance of each protein
-            imp <- varImp(results[[i]]$model, scale = TRUE)$importance
-            # select the top-k important proteins
-            imp.prots <- rownames(imp)[order(imp, decreasing=TRUE)][seq_len(top_K)]
-            # if important, set 1; otherwise,set 0
-            imp$Important <- ifelse(rownames(imp) %in% imp.prots, 1, 0)
-            
-            FI <- cbind(FI, imp[features, "Important"])
-            
+            imp <- results[[i]]$f_imp
+            FI[proteins %in% imp, paste0("simulation",i) := 1]
         }
         
         ## report the training and validating done
         .status("Finish to train classifier and to check the performance.", 
                 log = conn$con, func = func)
         
-        # assign simulation index
-        simulation_index <- paste0("simulation", seq_len(iter))
-        rownames(FI) <- features
-        colnames(FI) <- simulation_index
-        names(PA) <- simulation_index
+        names(PA) <- names(FI)[-1]
         
         # calculate mean predictive accuracy
         meanPA <-  mean(PA)
         
         # calculate mean feature importance
-        meanFI <-  rowSums(FI)
-        names(meanFI) <- features
+        meanFI <-  rowSums(FI[,-1], na.rm = T)
+        names(meanFI) <- FI[,proteins]
         # sort in descending order
         meanFI <- sort(meanFI, decreasing=TRUE)
         
@@ -228,8 +213,7 @@ designSampleSizeClassification <- function(simulations,
              mean_predictive_accuracy = meanPA, # mean predictive accuracy
              mean_feature_importance = meanFI, # vector of mean feature importance
              predictive_accuracy = PA, # vector of predictive accuracy
-             feature_importance = FI,  # matrix of feature importance
-             results = results # fitted models
+             feature_importance = FI  # matrix of feature importance
         )
     }, conn = conn, session = session)
     return(res)
