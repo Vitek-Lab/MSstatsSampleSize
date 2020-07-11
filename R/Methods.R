@@ -66,41 +66,44 @@
 #' @return A list with (1) predictive accuracy on validation set and
 #' (2) the trained classification model
 #' @keywords internal
-.classificationPerformance <- function(index, classifier, train_x_list, train_y_list, valid_x, valid_y, top_K){
-
+.classification_performance <- function(index, classifier, train_x_list,
+                                       train_y_list, valid_x, valid_y, top_K,
+                                       tunegrid){
     # record the train x and y
     x <- as.data.frame(train_x_list[[index]])
     y <- as.factor(train_y_list[[index]])
 
-    model <- .classificationModel(x = x,
-                                  y = y,
-                                  classifier = classifier)
+    model <- .classification_model(x = x, y = y, classifier = classifier,
+                                  tunegrid = tunegrid)
 
-    pred.features <- rownames(varImp(model, scale = TRUE)$importance)[seq(top_K)]
+    pred.features <- .feature_importance(model, classifier, top_K)
 
-    pred.model <- .classificationModel(x = x[, pred.features],
-                                       y = y,
-                                       classifier = classifier)
+    pred.model <- .classification_model(x = x[, pred.features$sel_imp], y = y,
+                                       classifier = classifier, tunegrid = tunegrid)
 
     ## Predict validation data
-    pred_y <- predict(pred.model, valid_x[, pred.features])
+    pred_y <- predict(pred.model, valid_x[, pred.features$sel_imp])
 
     ## Calculate predictive accuracy on validation data
     acc <- sum(diag(table(pred_y, valid_y))) / length(pred_y)
-    acc
-
-    # ## Predict validation data with all the proteins
-    # pred_y <- predict(model, valid_x)
-    #
-    # ## Calculate predictive accuracy on validation data
-    # acc <- sum(diag(table(pred_y, valid_y))) / length(pred_y)
-    # acc
-
     ## record the predictive accuracy and train model
-    run <- list(acc = acc, model = model)
-
+    run <- list(acc = acc, model = model, f_imp = pred.features$f_imp)
     return(run)
+}
 
+
+.feature_importance <- function(model, classifier, top_K){
+    
+    library(data.table)
+    f_imp <- caret::varImp(model, scale = T)
+    i_ff <- as.data.table(f_imp$importance, keep.rownames = T)
+    
+    if(classifier %in% c("svmLinear", "naive_bayes")){
+        i_ff[, Overall := rowMeans(i_ff[, -1], na.rm = T)]
+    }
+    setorder(i_ff, -Overall)
+    sel_imp <- i_ff[1:top_K][!is.na(rn), rn]
+    return(list(sel_imp = sel_imp, f_imp = i_ff))
 }
 
 
@@ -110,32 +113,31 @@
 #' @param y group information
 #' @return trained classification model
 #' @keywords internal
-.classificationModel <- function(x, y, classifier){
-
+.classification_model <- function(x, y, classifier, tunegrid, ...){
+    dots <- list(...)
+    MaxNwts <- ifelse(is.null(dots$MaxNwts), 80000, dots$MaxNwts)
+    maxit <- ifelse(is.null(dots$maxit), 100, dots$maxit)
+    
     if(classifier == "logreg"){
+        method <- ifelse(length(unique(y))>2, "multinom", "glm")
+    }
+    
+    if(classifier == "logreg" && method =="glm"){
         ## Train logistic regression on training data
-        model <- caret::train(x=x, y=make.names(y),
-                              trControl = caret::trainControl(method = "none", classProbs = TRUE),
-                              # trControl = trainControl(method = "cv", number=10, classProbs = TRUE),
-                              method = "glm",
-                              family = "binomial",)
-
+        model <- caret::train(x=x, y=make.names(y), method = method, 
+                              trControl = caret::trainControl(method = "none", 
+                                                              classProbs = TRUE),
+                              maxit = maxit)
     } else {
-        ## set the parameters of classifier
-        switch(classifier,
-               "rf"= {tunegrid=data.frame(mtry=2)},
-               "nnet"={tunegrid=data.frame(size=5, decay=0.1)},
-               "svmLinear"={tunegrid=data.frame(C=1)},
-               "naive_bayes"={tunegrid=data.frame(laplace=0, usekernel=FALSE, adjust=1)}
-        )
-
-        ## Train classifier on training data
+        if(classifier == 'logreg'){
+            classifier <- method
+        }
         model <- caret::train(x=x, y=make.names(y),
                               method = classifier,
-                              trControl = caret::trainControl(method = "none", classProbs = TRUE),
-                              # trControl = trainControl(method = "cv", number=10, classProbs = TRUE),
-                              tuneGrid = tunegrid,
-                              verbose=TRUE)
+                              trControl = caret::trainControl(method = "none",
+                                                              classProbs = TRUE),
+                              tuneGrid = tunegrid, MaxNwts = MaxNwts,
+                              maxit = maxit)
     }
 
     return(model)
@@ -166,6 +168,17 @@
     return(list(con = FILE_CONN, file = LOG_FILE))
 }
 
+
+.log_write <- function(log, log_type, conn){
+    sink(conn, type="message")
+    message(Sys.time()," : ",log_type,"_",log,"...")
+    sink(type="message")
+    if(log_type == 'ERROR'){
+        close(conn)
+    }
+}
+
+
 .status <- function(detail, ...){
     dots <- list(...)
     dots$func <- ifelse(is.null(dots$func),"'__'", as.character(dots$func))
@@ -178,6 +191,7 @@
                            detail = detail, session = dots$session)
     message(Sys.time()," : ",mess,"...")
 }
+
 
 .catch_faults <- function(..., conn, session=NULL){
     warn <- err <- NULL
@@ -202,20 +216,13 @@
     return(res)
 }
 
-.log_write <- function(log, log_type, conn){
-    sink(conn, type="message")
-    message(Sys.time()," : ",log_type,"_",log,"...")
-    sink(type="message")
-    if(log_type == 'ERROR'){
-        close(conn)
-    }
-}
 
 .check_missing_values <- function(x){
     return(apply(x, 2, function(x){
         any(is.na(x) | is.infinite(x) | is.nan(x) | is.null(x) == T)
     }))
 }
+
 
 .data_checks <- function(data, annotation, conn){
     packageStartupMessage(Sys.time()," : Checking Data for consistency...", 
@@ -273,8 +280,8 @@
         stop("CALL_",func,
              "_Each condition must have at least three biological replicates.")
     }
-    
     packageStartupMessage(" Success")
+    
     return(list("data" = data, "group" = group))
 }
 
@@ -304,8 +311,8 @@
         geom_point(size =  ifelse(is.null(dots$dot_size), 3, dots$dot_size)) + 
         stat_ellipse()+
         labs(title = ifelse(is.null(dots$title),"Input dataset", dots$title),
-             x = sprintf("PC1 (%s%% explained var.)",exp_var[1]),
-             y = sprintf("PC2 (%s%% explained var.)",exp_var[2])) +
+             x = sprintf("PC1 (%s%% explained var.)", exp_var[1]),
+             y = sprintf("PC2 (%s%% explained var.)", exp_var[2])) +
         theme_MSstats(...)
     return(p)
 }
@@ -383,4 +390,24 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
                                   legend.justification="right")
     
     return(th)
+}
+
+
+.tuning_params <- function(classifier, mtry = 2, size = 5, decay = 0.1, C = 1,
+                           laplace = 0, usekernel = F, adjust = 1){
+    req_classifier <- c('rf','nnet','svmLinear', 'naive_bayes')
+    func <- as.list(sys.call())[[1]]
+    if(!classifier %in% req_classifier){
+        stop("CALL_",func,"_Incorrect classifier, should be one of (",
+             paste(req_classifier, collapse = ", "),")")
+    }
+    
+    switch(classifier, 
+           "rf" = {tunegrid=data.frame(mtry=mtry)},
+           "nnet"={tunegrid=data.frame(size=size, decay=decay)},
+           "svmLinear"={tunegrid=data.frame(C=C)},
+           "naive_bayes"={tunegrid=data.frame(laplace=laplace, 
+                                              usekernel=usekernel, 
+                                              adjust=adjust)})
+    return(tunegrid)
 }

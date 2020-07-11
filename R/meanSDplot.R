@@ -107,6 +107,7 @@ meanSDplot <- function(data,
     if (address != FALSE) {
         dev.off()
     }
+    close(conn$con)
 
 }
 

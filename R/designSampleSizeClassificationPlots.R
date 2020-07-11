@@ -121,7 +121,7 @@ designSampleSizeClassificationPlots <- function(data,
     if(is.null(dots$log_con)){
         conn <- .logGeneration()  
     }else{
-        conn <- dots$log
+        conn <- dots$log_conn
     }
     func <- as.list(sys.call())[[1]]
     ################################################################################
@@ -224,7 +224,7 @@ designSampleSizeClassificationPlots <- function(data,
             dev.off()
         }
 
-        .status("Plotted protein importance", log = con$con, func = func)
+        .status("Plotted protein importance", log = conn$con, func = func)
     }
 
 
