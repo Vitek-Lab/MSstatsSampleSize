@@ -85,15 +85,17 @@
 #'     multiple_sample_sizes[[i]] <- res
 #' }
 #'
-#' ## make the plots
-#' designSampleSizeClassificationPlots(data = multiple_sample_sizes,
-#'                                     list_samples_per_group = list_samples_per_group)
+#' ## make the plots and save them to disk
+#' designSampleSizeClassificationPlots(data = multiple_sample_sizes, save.pdf = T)
 #'
+#'## make accuracy plot print in the Plots panes
+#' designSampleSizeClassificationPlots(data = multiple_sample_sizes, =predictive_accuracy_plot = T)
 #' @importFrom reshape2 melt
 #' @import ggplot2
 #' @importFrom gridExtra grid.arrange
 #' @importFrom utils sessionInfo read.table write.table
 #' @importFrom grDevices pdf dev.off
+#' @import data.table
 #' @export
 #'
 designSampleSizeClassificationPlots <- function(data,
@@ -108,94 +110,113 @@ designSampleSizeClassificationPlots <- function(data,
     ## log file
     ## save process output in each step
     dots <- list(...)
-    if(is.null(dots$log_con)){
-        conn <- .logGeneration()  
+    session <- dots$session
+    func <- as.list(sys.call())[[1]]
+    if(is.null(dots$log_conn)){
+        conn = mget("LOG_FILE", envir = .GlobalEnv,
+                    ifnotfound = NA)
+        if(is.na(conn)){
+            rm(conn)
+            conn <- .logGeneration()
+        } else{
+            conn <- .logGeneration(file = conn$LOG_FILE)   
+        }
     }else{
         conn <- dots$log_conn
     }
-    func <- as.list(sys.call())[[1]]
     ################################################################################
     
-    if('ssclassification' %in% class(data)){
-        f_imp <- .format_df(dat = data$mean_feature_importance,
-                            sample = unique(data$num_samples),
-                            top_n = num_important_proteins_show)
-        
-        acc_tbl <- .format_df(dat = data$predictive_accuracy,
-                              sample = unique(data$num_samples))
-        
-    }else{
-        f_imp <- do.call('rbind', lapply(data, function(x){
-            .format_df(dat = x$mean_feature_importance,
-                       sample = unique(x$num_samples),
-                       top_n = num_important_proteins_show)
-        }))
-        
-        acc_tbl <- do.call('rbind', lapply(data, function(x){
-            .format_df(dat = x$predictive_accuracy,
-                       sample = unique(x$num_samples))
-        }))
-        
-    }
-    
-    names(f_imp) <- c('frequency', 'protein', 'sample')
-    names(acc_tbl) <- c('acc', 'simulation', 'sample')
-    ylim_imp <- c(0,length(unique(acc_tbl$simulation)))
-    
-    if(length(unique(acc_tbl$sample))>1){
-        opt_obj <- .identify_optimal(df = acc_tbl, cutoff = optimal_threshold)
-        opt_val <- opt_obj$opt
-        acc_plot <- .plot_acc(df = opt_obj$df, y_lim = opt_obj$y_lim,
-                              optimal_ss = opt_val)
-    }else{
-        opt_val <- unique(acc_tbl$sample)
-        y_lim <- c(min(df$acc)-0.1, 1)
-        acc_plot <- .plot_acc(df = acc_tbl, y_lim = y_lim,
-                              optimal_ss = opt_val)
-    }
-    
-    
-    if(save.pdf | (protein_importance_plot && predictive_accuracy_plot)){
-        
-        if(predictive_accuracy_plot){
-            file <- sprintf("Accuracy_plot_%s.pdf",
-                            format(Sys.time(), "%Y%m%d%H%M%S"))
-            .status(detail = 'Plotting Accuracy plots')
-            pdf(file = file)
-            print(acc_plot+
-                      theme(x.axis.size = 4, y.axis.size = 4, margin = 0.5))
-            dev.off()
+    res <- .catch_faults({
+        if('ssclassification' %in% class(data)){
+            f_imp <- .format_df(dat = data$mean_feature_importance,
+                                sample = unique(data$num_samples),
+                                top_n = num_important_proteins_show)
+            
+            acc_tbl <- .format_df(dat = data$predictive_accuracy,
+                                  sample = unique(data$num_samples))
+            
+        }else{
+            f_imp <- do.call('rbind', lapply(data, function(x){
+                .format_df(dat = x$mean_feature_importance,
+                           sample = unique(x$num_samples),
+                           top_n = num_important_proteins_show)
+            }))
+            
+            acc_tbl <- do.call('rbind', lapply(data, function(x){
+                .format_df(dat = x$predictive_accuracy,
+                           sample = unique(x$num_samples))
+            }))
+            
         }
         
-        if(protein_importance_plot){
-            file <- sprintf("Protein_importance_plot_%s.pdf",
-                            format(Sys.time(), "%Y%m%d%H%M%S"))
-            plots <- list()
-            for(i in unique(f_imp$sample)){
-                df <- subset(f_imp, sample == i)
-                plots <- append(plots,
-                                list(.plot_imp(df = df, sample = i,
-                                               ylim = ylim_imp,
-                                               x.axis.size = 4, y.axis.size = 5,
-                                               margin = 0.5)))
+        names(f_imp) <- c('frequency', 'protein', 'sample')
+        names(acc_tbl) <- c('acc', 'simulation', 'sample')
+        ylim_imp <- c(0,length(unique(acc_tbl$simulation)))
+        
+        if(length(unique(acc_tbl$sample))>1){
+            opt_obj <- .identify_optimal(df = acc_tbl, cutoff = optimal_threshold)
+            opt_val <- opt_obj$opt
+            acc_plot <- .plot_acc(df = opt_obj$df, y_lim = opt_obj$y_lim,
+                                  optimal_ss = opt_val)
+        }else{
+            opt_val <- unique(acc_tbl$sample)
+            y_lim <- c(min(df$acc)-0.1, 1)
+            acc_plot <- .plot_acc(df = acc_tbl, y_lim = y_lim,
+                                  optimal_ss = opt_val)
+        }
+        
+        p <- NULL
+        if(save.pdf | (protein_importance_plot && predictive_accuracy_plot)){
+            
+            if(predictive_accuracy_plot){
+                file <- sprintf("Accuracy_plot_%s.pdf",
+                                format(Sys.time(), "%Y%m%d%H%M%S"))
+                .status(detail = 'Plotting Accuracy plots', log = conn$con,
+                        func = func, ...)
+                pdf(file = file)
+                print(acc_plot)
+                dev.off()
             }
-        }
+            
+            if(protein_importance_plot){
+                file <- sprintf("Protein_importance_plot_%s.pdf",
+                                format(Sys.time(), "%Y%m%d%H%M%S"))
+                plots <- list()
+                for(i in unique(f_imp$sample)){
+                    df <- subset(f_imp, sample == i)
+                    plots <- append(plots,
+                                    list(.plot_imp(df = df, sample = i,
+                                                   ylim = ylim_imp,
+                                                   x.axis.size = 6, y.axis.size = 6,
+                                                   margin = 0.5)))
+                }
+            }
             seqs <- seq(4,length(plots), 4)
             
             library(gridExtra)
             pdf(file = file)
             for(i in seqs){
-                .status(sprintf("Plotting %s plot", i))
+                .status(sprintf("Plotting %s plot", i), log = conn$con,
+                        func = func, ...)
                 do.call("grid.arrange", c(plots[(i-3):i], ncol=2, nrow=2))
             }
             dev.off()
-    } else if (predictive_accuracy_plot){
-        acc_plot
-    } else if( protein_importance_plot){
-    }
-    .status(detail = sprintf("Estimated optimal sample size is %s", opt_val))
-    return(opt_val)
+            p <- NULL
+        } else if (predictive_accuracy_plot){
+            p <- acc_plot
+        } else if(protein_importance_plot){
+            p <- .plot_imp(df = f_imp, ylim = ylim_imp, facet = T)
+        }
+        .status(detail = sprintf("Estimated optimal sample size is %s", opt_val),
+                log = conn$con, func = func, ...)
+        
+        return(list('optimal_size'=opt_val, 'plot' = p))
+    }, conn = conn, session = session)
+    return(res)
 }
+
+
+
 
 
 

@@ -92,8 +92,6 @@
 
 
 .feature_importance <- function(model, classifier, top_K){
-    
-    library(data.table)
     f_imp <- caret::varImp(model, scale = T)
     i_ff <- as.data.table(f_imp$importance, keep.rownames = T)
     
@@ -193,8 +191,9 @@
     message(Sys.time()," : ",log_type,"_",log,"...")
     sink(type="message")
     if(log_type == 'ERROR'){
-        close(conn)
+        message(Sys.time()," : ",log_type,"_",log,"...")
     }
+    
 }
 
 
@@ -231,7 +230,9 @@
         invokeRestart("muffleWarning")
     })
     assign("LOG_FILE", conn$file, envir = .GlobalEnv)
-    close(conn$con)
+    if(isOpen(conn$con)){
+        close(conn$con)
+    }
     return(res)
 }
 
@@ -419,7 +420,6 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
 
 
 .identify_optimal <- function(df, cutoff, use_h2o = F){
-    library(data.table)
     df <- as.data.table(df)
     df[, mean_acc := mean(acc), sample]
     opt_df <- unique(df[, .(sample, mean_acc)])
@@ -474,11 +474,11 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
         coord_flip()
     
     if(facet){
-        titles <- sprintf("%s Samples/Group", unique(f_imp$sample))
-        names(titles) <- unique(f_imp$sample)
+        titles <- sprintf("%s Samples/Group", unique(df$sample))
+        names(titles) <- unique(df$sample)
         titles_lb <- as_labeller(titles)
         g <- g+
-            facet_wrap(~sample, ncol = 2, scales = 'free', labeller = titles_lb)
+            facet_wrap(sample~., ncol = 2, scales = 'free', labeller = titles_lb)
     }else{
         g <- g+
             labs(title = sprintf("%s Samples/Group", sample))
