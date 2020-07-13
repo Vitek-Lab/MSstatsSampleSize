@@ -216,5 +216,7 @@ designSampleSizeClassification <- function(simulations,
              feature_importance = FI  # matrix of feature importance
         )
     }, conn = conn, session = session)
+    class(res) <- c('list', 'ssclassification')
+    
     return(res)
 }
