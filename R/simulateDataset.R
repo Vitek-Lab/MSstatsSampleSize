@@ -118,16 +118,11 @@
 #'
 #' @importFrom utils sessionInfo read.table write.table
 #'
-simulateDataset <- function(data,
-                            annotation,
-                            log2Trans = FALSE,
-                            num_simulations = 10,
-                            samples_per_group = 50,
-                            protein_rank = "mean",
-                            protein_select = "high",
+simulateDataset <- function(data, annotation, log2Trans = FALSE,
+                            num_simulations = 10, samples_per_group = 50,
+                            protein_rank = "mean", protein_select = "high",
                             protein_quantile_cutoff = 0.0,
-                            expected_FC = "data",
-                            list_diff_proteins =  NULL,
+                            expected_FC = "data", list_diff_proteins =  NULL,
                             simulate_validation = FALSE,
                             valid_samples_per_group = 50, ...) {
     
@@ -374,7 +369,9 @@ simulateDataset <- function(data,
             
         } else{ # use input data as validation set
             ## !! impute the missing values by randomly selecting values for each protein
-            valid_X <- as.data.frame(apply(data[selectedPros, ],1, function(x) .randomImputation(x))) # impute missing values
+            valid_X <- as.data.frame(apply(data[selectedPros, ],1, function(x){
+                .randomImputation(x)  
+            })) # impute missing values
             valid_Y <- as.factor(group)
         }
         

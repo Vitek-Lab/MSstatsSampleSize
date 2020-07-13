@@ -68,7 +68,7 @@ estimateVar <- function(data, annotation, log2Trans = F, ...) {
         .status("Estimating Variance", log = conn$con, func = func, ...)
         .status("Starting Data Check", log = conn$con, func = func, ...)
         #Check the data for all required conditions of consistency
-        data_obj <- .data_checks(data = data, annotation = annotation, conn = conn)
+        data_obj <- .data_checks(data = data, annotation = annotation)
         .status("Data Check Complete", log = conn$con, func = func, ...)
         data <- .log2_trans(trans = log2Trans, data = data_obj$data, conn = conn)
         

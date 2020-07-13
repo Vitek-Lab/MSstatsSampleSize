@@ -181,15 +181,16 @@ designSampleSizeClassification <- function(simulations,
         PA <- NULL
         
         ## calculate the frequency a protein is selected as important (biomarker candidates)
-        FI <- data.table::data.table('proteins' = names(valid_x))
+        FI <- data.frame('proteins' = names(valid_x))
         
         for (i in seq_along(results)) {
             # record the importance of each protein
             PA <- c(PA, results[[i]]$acc)
             imp <- results[[i]]$f_imp
-            FI[proteins %in% imp, paste0("simulation",i) := 1]
+            FI <- cbind(FI, with(FI, ifelse(proteins %in% imp,1,0)))
         }
         
+        names(FI) <- c('proteins', paste0("simulation", seq_along(results)))
         ## report the training and validating done
         .status("Finish to train classifier and to check the performance.", 
                 log = conn$con, func = func)
@@ -198,10 +199,9 @@ designSampleSizeClassification <- function(simulations,
         
         # calculate mean predictive accuracy
         meanPA <-  mean(PA)
-        
         # calculate mean feature importance
         meanFI <-  rowSums(FI[,-1], na.rm = T)
-        names(meanFI) <- FI[,proteins]
+        names(meanFI) <- FI$proteins
         # sort in descending order
         meanFI <- sort(meanFI, decreasing=TRUE)
         
