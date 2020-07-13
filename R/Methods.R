@@ -418,3 +418,81 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
 }
 
 
+.identify_optimal <- function(df, cutoff, use_h2o = F){
+    library(data.table)
+    df <- as.data.table(df)
+    df[, mean_acc := mean(acc), sample]
+    opt_df <- unique(df[, .(sample, mean_acc)])
+    setorder(opt_df, -sample)
+    if(use_h2o){
+        setorder(opt_df, sample)
+    }
+    
+    opt_df[, sample := as.numeric(as.character(sample))]
+    opt_df[, lg := (mean_acc - shift(mean_acc))/(sample - shift(sample))]
+    opt_df[, optimal := ifelse(lg >= cutoff, T, F)]
+    if(nrow(opt_df[, .N, optimal][optimal == T]) != 0){
+        opt_val <- opt_df[optimal == T][which.min(lg), sample]
+    } else {
+        opt_val <- opt_df[which.min(sample), sample]
+    }
+    
+    y_lim <- c(df[,min(mean_acc, na.rm = T)]-0.1, 1)
+    df[sample == opt_val, fill_col := "red"]
+    
+    return(list('df' = df, 'opt' = opt_val, 'y_lim' = y_lim))
+}
+
+
+.plot_acc <- function(df, y_lim, optimal_ss, ...){
+    g <- ggplot(data = df, aes(x = sample))+
+        geom_boxplot(aes(y = acc, group = sample, fill = fill_col), alpha = 0.5)+
+        scale_fill_identity()+
+        geom_point(aes(y = mean_acc))+
+        geom_line(aes(y = mean_acc, group = 1), size = 0.75, color = "blue")+
+        labs(x = "Simulated Sample Size Per Group", y = "Predictive Accuracy",
+             #title = sprintf("Classifier %s", alg),
+             subtitle = sprintf("Optimum accuracy achieved when sample size per group is : %s",
+                                optimal_ss))+
+        scale_y_continuous(breaks = scales::pretty_breaks(), limit = y_lim)+
+        scale_x_continuous(breaks = unique(df$sample))+
+        theme_MSstats(...)+
+        theme(plot.subtitle = element_text(face = "italic", color = "red"))
+    
+    return(g)
+}
+
+
+.plot_imp <- function(df, sample, ylim, facet = F,...){
+    g <- ggplot(data = df, aes(x = reorder(protein, frequency), 
+                               y = frequency))+
+        geom_col()+
+        labs(x = "Protein", y = "Frequency")+
+        scale_y_continuous(breaks = scales::pretty_breaks(),
+                           limit = ylim)+
+        theme_MSstats(...)+
+        coord_flip()
+    
+    if(facet){
+        titles <- sprintf("%s Samples/Group", unique(f_imp$sample))
+        names(titles) <- unique(f_imp$sample)
+        titles_lb <- as_labeller(titles)
+        g <- g+
+            facet_wrap(~sample, ncol = 2, scales = 'free', labeller = titles_lb)
+    }else{
+        g <- g+
+            labs(title = sprintf("%s Samples/Group", sample))
+    }
+    return(g)
+}
+
+
+.format_df <- function(dat, sample, top_n = NA){
+    df <- stack(dat)
+    df$sample <- sample
+    if(is.na(top_n)){
+        return(df)
+    }else{
+        return(df[seq_len(top_n),])   
+    }
+}
