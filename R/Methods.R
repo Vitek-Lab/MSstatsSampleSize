@@ -64,7 +64,7 @@
 #'
 #' @param index protein abundance data for one protein.
 #' @return A list with (1) predictive accuracy on validation set and
-#' (2) the trained classification model
+#' (2) the important features
 #' @keywords internal
 .classification_performance <- function(index, classifier, train_x_list,
                                        train_y_list, valid_x, valid_y, top_K,
@@ -101,7 +101,7 @@
         i_ff[, Overall := rowMeans(i_ff[, -1], na.rm = T)]
     }
     setorder(i_ff, -Overall)
-    sel_imp <- i_ff[1:top_K][!is.na(rn), rn]
+    sel_imp <- i_ff[seq_len(top_K),]$rn
     return(sel_imp)
 }
 
@@ -141,6 +141,26 @@
 
     return(model)
 
+}
+
+
+.tuning_params <- function(classifier, mtry = 2, size = 5, decay = 0.1, C = 1,
+                           laplace = 0, usekernel = F, adjust = 1){
+    req_classifier <- c('rf','nnet','svmLinear', 'naive_bayes')
+    func <- as.list(sys.call())[[1]]
+    if(!classifier %in% req_classifier){
+        stop("CALL_",func,"_Incorrect classifier, should be one of (",
+             paste(req_classifier, collapse = ", "),")")
+    }
+    
+    switch(classifier, 
+           "rf" = {tunegrid=data.frame(mtry=mtry)},
+           "nnet"={tunegrid=data.frame(size=size, decay=decay)},
+           "svmLinear"={tunegrid=data.frame(C=C)},
+           "naive_bayes"={tunegrid=data.frame(laplace=laplace, 
+                                              usekernel=usekernel, 
+                                              adjust=adjust)})
+    return(tunegrid)
 }
 
 
@@ -235,6 +255,7 @@
         stop("CALL_",func,
              "__Please check the column names of 'data'. There are duplicated 'Run'.")
     }
+    
     #Check if input data is consistent with the required format
     required.annotation <- c('Condition', 'BioReplicate', 'Run')
     consistent_cols <- !setequal(required.annotation, colnames(annotation))
@@ -244,13 +265,15 @@
         stop("CALL_", func,"_",nf,
              " is not provided in Annotation, please check annotation file")
     }
-    
-    ic <- setequal(annotation$Run, colnames(data)) && nrow(annotation) == ncol(data)
+
+    ic <- setequal(annotation$BioReplicate, colnames(data)) && nrow(annotation) == ncol(data)
     if(!ic){
         packageStartupMessage(" Failure")
         stop("CALL_",func,"_",
-             "Please check the annotation file. 'Run' must match with the column names of 'data'.") 
+             "Please check the annotation file. 'Bioreplicate' must match with",
+             "the column names of 'data'.")
     }
+
     
     if(length(unique(annotation$Condition)) < 2){
         stop("Need at least two conditions to do simulations")
@@ -287,15 +310,18 @@
 
 .log2_trans <- function(trans, data, conn, ...){
     func <- as.list(sys.call())[[1]]
-    if(!is.logical(trans)){
+    if(is.logical(trans)){
+        if(trans){
+            data <- log2(data)
+            .status(detail = "Negative values if any where replaced with NA",
+                    log = conn$con, func = func, ...)
+            data[!is.na(data) & data < 0] <- NA   
+        }
+        return(data)
+    }else{
         stop("CALL_", func,
              "_log2Trans should be logical. Please provide either TRUE or FALSE")
     }
-    data <- log2(data)
-    .status(detail = "Negative values if any where replaced with NA",
-            log = conn$con, func = func, ...)
-    data[!is.na(data) & data < 0] <- NA
-    return(data)
 }
 
 
@@ -392,21 +418,3 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
 }
 
 
-.tuning_params <- function(classifier, mtry = 2, size = 5, decay = 0.1, C = 1,
-                           laplace = 0, usekernel = F, adjust = 1){
-    req_classifier <- c('rf','nnet','svmLinear', 'naive_bayes')
-    func <- as.list(sys.call())[[1]]
-    if(!classifier %in% req_classifier){
-        stop("CALL_",func,"_Incorrect classifier, should be one of (",
-             paste(req_classifier, collapse = ", "),")")
-    }
-    
-    switch(classifier, 
-           "rf" = {tunegrid=data.frame(mtry=mtry)},
-           "nnet"={tunegrid=data.frame(size=size, decay=decay)},
-           "svmLinear"={tunegrid=data.frame(C=C)},
-           "naive_bayes"={tunegrid=data.frame(laplace=laplace, 
-                                              usekernel=usekernel, 
-                                              adjust=adjust)})
-    return(tunegrid)
-}
