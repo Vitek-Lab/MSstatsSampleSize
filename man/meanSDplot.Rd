@@ -13,7 +13,8 @@ meanSDplot(
   ylimUp = 3,
   height = 4,
   width = 4,
-  address = ""
+  address = "",
+  ...
 )
 }
 \arguments{

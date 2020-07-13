@@ -8,7 +8,8 @@ designSampleSizeClassification(
   simulations,
   classifier = "rf",
   top_K = 10,
-  parallel = FALSE
+  parallel = FALSE,
+  ...
 )
 }
 \arguments{

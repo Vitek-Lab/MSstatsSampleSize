@@ -4,7 +4,9 @@
 \name{classification_results}
 \alias{classification_results}
 \title{Example of output from designSampleSizeClassification function}
-\format{A list with five elements}
+\format{
+A list with five elements
+}
 \usage{
 classification_results
 }

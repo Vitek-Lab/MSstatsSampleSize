@@ -8,15 +8,17 @@ proteins based on the input \emph{data}}
 simulateDataset(
   data,
   annotation,
+  log2Trans = FALSE,
   num_simulations = 10,
+  samples_per_group = 50,
+  protein_rank = "mean",
+  protein_select = "high",
+  protein_quantile_cutoff = 0,
   expected_FC = "data",
   list_diff_proteins = NULL,
-  select_simulated_proteins = "proportion",
-  protein_proportion = 1,
-  protein_number = 1000,
-  samples_per_group = 50,
   simulate_validation = FALSE,
-  valid_samples_per_group = 50
+  valid_samples_per_group = 50,
+  ...
 )
 }
 \arguments{
@@ -27,8 +29,39 @@ Rows are proteins and columns are biological replicates (samples).}
 `Run' for MS run, `BioReplicate' for biological subject ID and `Condition' for group information are required.
 `Run' information should be the same with the column of `data'. Multiple `Run' may come from same `BioReplicate'.}
 
+\item{log2Trans}{Default is FALSE. If TRUE, the input `data' is log-transformed with base 2.}
+
 \item{num_simulations}{Number of times to repeat simulation experiments
 (Number of simulated datasets). Default is 10.}
+
+\item{samples_per_group}{Number of samples per group to simulate. Default is 50.}
+
+\item{protein_rank}{The standard to rank the proteins in the input `data'.
+It can be 1) "mean" of protein abundances over all the samples or
+2) "sd" (standard deviation) of protein abundances over all the samples or
+3) the "combined" of mean abundance and standard deviation.
+The proteins in the input `data' are ranked based on `protein_rank'
+and the user can select a subset of proteins to simulate.}
+
+\item{protein_select}{select proteins with "low" or "high" mean abundance or
+standard deviation (variance) or their combination to simulate.
+If `protein_order = "mean"' or protein_order = "sd"', `protein_select' should be "low" or "high".
+Default is "high", indicating high abundance or standard deviation proteins are selected to simulate.
+If `protein_order = "combined"', `protein_select' has two elements.
+The first element corrresponds to the mean abundance.
+The second element corrresponds to the standard deviation (variance).
+Default is c("high", "low") (select proteins with high abundance and low variance).}
+
+\item{protein_quantile_cutoff}{Quantile cutoff(s) for selecting protiens to simulate.
+For example, when `protein_rank="mean"', and
+`protein_select="high"', `protein_quantile_cutoff=0.1'
+Proteins are ranked based on their mean abundance across all the samples.
+Then, the top 10% highest abundant proteins are selected to simulate.
+Default is 0.0, which means that all the proteins are used.
+If `protein_rank = "combined"', `protein_quantile_cutoff'` has two cutoffs.
+The first element corrresponds to the cutoff for mean abundance.
+The second element corrresponds to the cutoff for the standard deviation (variance).
+Default is c(0.0, 1.0), which means that all the proteins will be used.}
 
 \item{expected_FC}{Expected fold change of proteins.
 The first option (Default) is "data",
@@ -42,25 +75,6 @@ Other proteins that are not available in `list_diff_proteins' will be expected t
 \item{list_diff_proteins}{Vector of proteins names
 which are set to have fold changes greater than 1 between conditions.
 If user selected `expected_FC= "data" ', this should be NULL.}
-
-\item{select_simulated_proteins}{The standard to select the simulated proteins among data.
-It can be 1) "proportion" of total number of proteins in the input data or
-2) "number" to specify the number of proteins.
-"proportion" indicates that user should provide the value for `protein_proportion' option.
-"number" indicates that user should provide the value for `protein_number' option.}
-
-\item{protein_proportion}{Proportion of total number of proteins in the input data to simulate.
-For example, input data has 1,000 proteins and user selects `protein_proportion=0.1'.
-Proteins are ranked in decreasing order based on their mean abundance across all the samples.
-Then, 1,000 * 0.1 = 100 proteins will be selected from the top list to simulate.
-Default is 1.0, which meaans that all the proteins will be used.}
-
-\item{protein_number}{Number of proteins to simulate. For example, `protein_number=1000'.
-Proteins are ranked in decreasing order based on their mean abundance across all the samples
-and top `protein_number' proteins will be selected to simulate.
-Default is 1000.}
-
-\item{samples_per_group}{Number of samples per group to simulate. Default is 50.}
 
 \item{simulate_validation}{Default is FALSE. If TRUE, simulate the validation set;
 otherwise, the input `data' will be used as the validation set.}
@@ -112,20 +126,21 @@ data(OV_SRM_train)
 data(OV_SRM_train_annotation)
 
 # num_simulations = 10: simulate 10 times
+# protein_rank = "mean", protein_select = "high", and protein_quantile_cutoff = 0.0:
+# select the proteins with high mean abundance based on the protein_quantile_cutoff
 # expected_FC = "data": fold change estimated from OV_SRM_train
-# select_simulated_proteins = "proportion":
-# select the simulated proteins based on the proportion of total proteins
 # simulate_validation = FALSE: use input OV_SRM_train as validation set
 # valid_samples_per_group = 50: 50 samples per condition
 simulated_datasets <- simulateDataset(data = OV_SRM_train,
                                       annotation = OV_SRM_train_annotation,
+                                      log2Trans = FALSE,
                                       num_simulations = 10,
+                                      samples_per_group = 50,
+                                      protein_rank = "mean",
+                                      protein_select = "high",
+                                      protein_quantile_cutoff = 0.0,
                                       expected_FC = "data",
                                       list_diff_proteins =  NULL,
-                                      select_simulated_proteins = "proportion",
-                                      protein_proportion = 1.0,
-                                      protein_number = 1000,
-                                      samples_per_group = 50,
                                       simulate_validation = FALSE,
                                       valid_samples_per_group = 50)
 

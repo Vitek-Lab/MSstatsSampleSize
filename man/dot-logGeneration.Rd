@@ -4,7 +4,7 @@
 \alias{.logGeneration}
 \title{Create log file}
 \usage{
-.logGeneration()
+.logGeneration(...)
 }
 \value{
 \emph{finalfile} The log file name

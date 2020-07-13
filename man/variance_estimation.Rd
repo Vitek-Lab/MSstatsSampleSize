@@ -4,7 +4,9 @@
 \name{variance_estimation}
 \alias{variance_estimation}
 \title{Example of output from estimateVar function}
-\format{A list with five elements}
+\format{
+A list with five elements
+}
 \usage{
 variance_estimation
 }

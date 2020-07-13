@@ -7,19 +7,12 @@
 designSampleSizeClassificationPlots(
   data,
   list_samples_per_group,
-  optimal_threshold = 1e-04,
+  optimal_threshold = 0.001,
   num_important_proteins_show = 10,
   protein_importance_plot = TRUE,
   predictive_accuracy_plot = TRUE,
-  x.axis.size = 10,
-  y.axis.size = 10,
-  protein_importance_plot_width = 3,
-  protein_importance_plot_height = 3,
-  predictive_accuracy_plot_width = 4,
-  predictive_accuracy_plot_height = 4,
-  ylimUp_predictive_accuracy = 1,
-  ylimDown_predictive_accuracy = 0,
-  address = ""
+  save.pdf = F,
+  ...
 )
 }
 \arguments{
@@ -124,10 +117,11 @@ for(i in seq_along(list_samples_per_group)){
     multiple_sample_sizes[[i]] <- res
 }
 
-## make the plots
-designSampleSizeClassificationPlots(data = multiple_sample_sizes,
-                                    list_samples_per_group = list_samples_per_group)
+## make the plots and save them to disk
+designSampleSizeClassificationPlots(data = multiple_sample_sizes, save.pdf = T)
 
+## make accuracy plot print in the Plots panes
+designSampleSizeClassificationPlots(data = multiple_sample_sizes, =predictive_accuracy_plot = T)
 }
 \author{
 Ting Huang, Meena Choi, Olga Vitek.
