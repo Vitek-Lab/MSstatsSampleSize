@@ -17,6 +17,8 @@
 }
 \arguments{
 \item{index}{protein abundance data for one protein.}
+
+\item{classifier}{A character string with the name of the classifier to be used}
 }
 \value{
 A list with (1) predictive accuracy on validation set and

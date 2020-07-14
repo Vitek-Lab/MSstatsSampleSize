@@ -10,6 +10,10 @@
 \item{x}{protein abundance data for one protein}
 
 \item{y}{group information}
+
+\item{classifier}{A string of classifier}
+
+\item{tunegrid}{A data.frame with tuning parameters}
 }
 \value{
 trained classification model

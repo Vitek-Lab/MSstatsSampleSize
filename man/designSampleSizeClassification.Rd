@@ -2,7 +2,8 @@
 % Please edit documentation in R/designSampleSizeClassification.R
 \name{designSampleSizeClassification}
 \alias{designSampleSizeClassification}
-\title{Estimate the mean predictive accuracy and mean protein importance over all the simulated datasets}
+\title{Estimate the mean predictive accuracy and mean protein importance over all 
+the simulated datasets}
 \usage{
 designSampleSizeClassification(
   simulations,
@@ -13,59 +14,74 @@ designSampleSizeClassification(
 )
 }
 \arguments{
-\item{simulations}{A list of simulated datasets It should be the name of the output of \code{\link{simulateDataset}} function.}
+\item{simulations}{A list of simulated datasets It should be the name of the 
+output of \code{\link{simulateDataset}} function.}
 
-\item{classifier}{A string specifying which classfier to use. This function uses function `train' from package caret.
-The options are 1) rf (random forest calssifier, default option). 2) nnet (neural network),
-3) svmLinear (support vector machines with linear kernel), 4) logreg (logistic regression), and 5) naive_bayes (naive_bayes).}
+\item{classifier}{A string specifying which classfier to use. This function 
+uses function `train' from package caret. The options are 1) rf (random 
+forest calssifier, default option). 2) nnet (neural network), 3) svmLinear 
+(support vector machines with linear kernel), 4) logreg (logistic regression), 
+and 5) naive_bayes (naive_bayes).}
 
-\item{top_K}{the number of proteins selected as important features (biomarker candidates).
-All the proteins are ranked in descending order based on its importance to separate different groups and
-the `top_K` proteins are selected as important features.}
+\item{top_K}{the number of proteins selected as important features 
+(biomarker candidates). All the proteins are ranked in descending order based 
+on its importance to separate different groups and the `top_K` proteins are 
+selected as important features.}
 
 \item{parallel}{Default is FALSE. If TRUE, parallel computation is performed.}
 }
 \value{
-\emph{num_proteins} is the number of simulated proteins.
- It should be the same as one of the output from \emph{simulateDataset}, called \emph{num_proteins}
+\emph{num_proteins} is the number of simulated proteins. It should be 
+the same as one of the output from \emph{simulateDataset}, called \emph{num_proteins}
 
-\emph{num_samples} is a vector with the number of simulated samples in each condition.
- It should be the same as one of the output from \emph{simulateDataset}, called \emph{num_samples}
+\emph{num_samples} is a vector with the number of simulated samples 
+in each condition. It should be the same as one of the output from 
+\emph{simulateDataset}, called \emph{num_samples}
 
-\emph{mean_predictive_accuracy} is the mean predictive accuracy over all the simulated datasets,
-which have same `num_proteins' and `num_samples'.
+\emph{mean_predictive_accuracy} is the mean predictive accuracy over 
+all the simulated datasets, which have same `num_proteins' and `num_samples'.
 
-\emph{mean_feature_importance} is the mean protein importance vector over all the simulated datasets,
-the length of which is `num_proteins'.
+\emph{mean_feature_importance} is the mean protein importance vector 
+over all the simulated datasets, the length of which is `num_proteins'.
 
-\emph{predictive_accuracy} is a vector of predictive accuracy on each simulated dataset.
+\emph{predictive_accuracy} is a vector of predictive accuracy on each 
+simulated dataset.
 
-\emph{feature_importance} is a matrix of feature importance, where rows are proteins and columns are simulated datasets.
+\emph{feature_importance} is a matrix of feature importance, where 
+rows are proteins and columns are simulated datasets.
 
-\emph{results} is the list of classification models trained on each simulated dataset and
-the predictive accuracy on the validation set predicted by the corresponding classification model.
+\emph{results} is the list of classification models trained on each 
+simulated dataset and
+the predictive accuracy on the validation set predicted by the corresponding 
+classification model.
 }
 \description{
-Estimate the mean predictive accuracy and mean protein importance over all the simulated datasets
+Estimate the mean predictive accuracy and mean protein importance over all 
+the simulated datasets
 }
 \details{
 This function fits the classification model,
-in order to classify the subjects in each simulated training dataset (the output of \code{\link{simulateDataset}}).
-Then the fitted model is validated on the (simulated) validation set (the output of \code{\link{simulateDataset}}).
+in order to classify the subjects in each simulated training dataset (the 
+output of \code{\link{simulateDataset}}).
+Then the fitted model is validated on the (simulated) validation set (the 
+output of \code{\link{simulateDataset}}).
 Two performance are reported :
 
-(1) the mean predictive accuracy : The function trains classifier on each simulated training dataset and
-reports the predictive accuracy of the trained classifier on the validation data (output of \code{\link{simulateDataset}} function).
+(1) the mean predictive accuracy : The function trains classifier on each 
+simulated training dataset and reports the predictive accuracy of the trained
+classifier on the validation data (output of \code{\link{simulateDataset}} function).
 Then these predictive accuracies are averaged over all the simulation.
 
-(2) the mean protein importance : It represents the importance of a protein in separating different groups.
-It is estimated on each simulated training dataset using function `varImp' from package caret. Please refer to the help file of `varImp' about
-how each classifier calculates the protein importance. Then these importance values for each protein are averaged over all the simulation.
+(2) the mean protein importance : It represents the importance of a protein 
+in separating different groups. It is estimated on each simulated training 
+dataset using function `varImp` from package caret. Please refer to the help 
+file of `varImp` about how each classifier calculates the protein importance. 
+Then these importance values for each protein are averaged over all the simulation.
 
-The list of classification models trained on each simulated dataset, the predictive accuracy
-on the validation set predicted by the corresponding classification model and
-the importance value for all the proteins estimated by the corresponding classification model
-are also reported.
+The list of classification models trained on each simulated dataset, 
+the predictive accuracy on the validation set predicted by the corresponding
+classification model and the importance value for all the proteins estimated
+by the corresponding classification model are also reported.
 }
 \examples{
 data(OV_SRM_train)
