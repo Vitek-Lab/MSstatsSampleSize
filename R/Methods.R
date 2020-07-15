@@ -446,7 +446,6 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
                          legend.direction = leg.dir,
                          legend.text = element_text(size = legend.size), 
                          legend.title = element_blank(),
-                         legend.position = leg.pos,
                          plot.margin = unit(rep(margin,4), "cm"),...)
     
     if(!download)

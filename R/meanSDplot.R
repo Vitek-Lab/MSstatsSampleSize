@@ -69,7 +69,7 @@ meanSDplot <- function(data, smoother_size = 1, xlimUp = 30, ylimUp = 3,
              y = "Standard deviation") +
         scale_y_continuous(expand = c(0,0), limits = c(0,ylimUp)) +
         scale_x_continuous(expand = c(0,0), limits = c(0,xlimUp)) +
-        theme_MSstats(leg.pos = "none", download = T)
+        theme_MSstats(legend.position = "none", download = T)
     
     if(save.pdf){
         file_name <- sprintf("meandSD_plot_%s.pdf", format(Sys.time(),'%H%M%s'))
