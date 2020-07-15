@@ -29,8 +29,12 @@
 #' @importFrom stats lowess sd
 #' @export
 #'
-meanSDplot <- function(data, smoother_size = 1, xlimUp = 30, ylimUp = 3,
-                       save.pdf = FALSE, ...){
+meanSDplot <- function(data,
+                       smoother_size = 1,
+                       xlimUp = 30,
+                       ylimUp = 3,
+                       save.pdf = FALSE,
+                       ...){
 
     ..density.. <-  freq <- x <- y <- NULL
     ###############################################################################

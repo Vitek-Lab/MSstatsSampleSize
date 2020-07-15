@@ -63,7 +63,9 @@
 #' @importFrom stats prcomp
 #' @export
 #'
-designSampleSizePCAplot <- function(simulations, which.PCA = "all", save.pdf = TRUE,
+designSampleSizePCAplot <- function(simulations,
+                                    which.PCA = "all",
+                                    save.pdf = FALSE,
                                     ...) {
 
     ###############################################################################
