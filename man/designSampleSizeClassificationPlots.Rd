@@ -6,88 +6,73 @@
 \usage{
 designSampleSizeClassificationPlots(
   data,
-  list_samples_per_group,
-  optimal_threshold = 1e-04,
+  optimal_threshold = 0.001,
   num_important_proteins_show = 10,
   protein_importance_plot = TRUE,
   predictive_accuracy_plot = TRUE,
-  x.axis.size = 10,
-  y.axis.size = 10,
-  protein_importance_plot_width = 3,
-  protein_importance_plot_height = 3,
-  predictive_accuracy_plot_width = 4,
-  predictive_accuracy_plot_height = 4,
-  ylimUp_predictive_accuracy = 1,
-  ylimDown_predictive_accuracy = 0,
-  address = ""
+  save.pdf = FALSE,
+  ...
 )
 }
 \arguments{
 \item{data}{A list of outputs from function \code{\link{designSampleSizeClassification}}. Each element represents the results under a specific sample size.
 The input should include at least two simulation results with different sample sizes.}
 
-\item{list_samples_per_group}{A vector includes the different sample sizes simulated. This is required.
-The number of simulated sample sizes in the input `data' should be equal to the length of list_samples_per_group}
-
-\item{optimal_threshold}{The maximal cutoff for deciding the optimal sample size. Default is 0.0001. Large cutoff can lead to smaller optimal sample size
+\item{optimal_threshold}{The maximal cutoff for deciding the optimal sample
+size. Default is 0.0001. Large cutoff can lead to smaller optimal sample size
 whereas small cutoff produces large optimal sample size.}
 
-\item{num_important_proteins_show}{The number of proteins to show in protein importance plot.}
+\item{num_important_proteins_show}{The number of proteins to show in protein
+importance plot.}
 
 \item{protein_importance_plot}{TRUE(default) draws protein importance plot.}
 
 \item{predictive_accuracy_plot}{TRUE(default) draws predictive accuracy plot.}
 
-\item{x.axis.size}{Size of x-axis labeling in predictive accuracy plot and protein importance plot. Default is 10.}
+\item{save.pdf}{A logical input, determines to save the plots as a pdf or not,
+the pdf plot is saved in the current working directory, name of the created
+file is displayed on the console and logged for easier access}
 
-\item{y.axis.size}{Size of y-axis labels in predictive accuracy plot and protein importance plot. Default is 10.}
-
-\item{protein_importance_plot_width}{Width of the saved pdf file for protein importance plot. Default is 3.}
-
-\item{protein_importance_plot_height}{Height of the saved pdf file for protein importance plot. Default is 3.}
-
-\item{predictive_accuracy_plot_width}{Width of the saved pdf file for predictive accuracy plot. Default is 4.}
-
-\item{predictive_accuracy_plot_height}{Height of the saved pdf file for predictive accuracy plot. Default is 4.}
-
-\item{ylimUp_predictive_accuracy}{The upper limit of y-axis for predictive accuracy plot. Default is 1. The range should be 0 to 1.}
-
-\item{ylimDown_predictive_accuracy}{The lower limit of y-axis for predictive accuracy plot. Default is 0.0. The range should be 0 to 1.}
-
-\item{address}{the name of folder that will store the results. Default folder is the current working directory.
-The other assigned folder has to be existed under the current working directory.
-An output pdf file is automatically created with the default name of `PredictiveAccuracyPlot.pdf' and `ProteinImportancePlot.pdf'.
-The command address can help to specify where to store the file as well as how to modify the beginning of the file name.
-If address=FALSE, plot will be not saved as pdf file but showed in window.}
+\item{...}{Arguements that can be passed to ggplot2::theme functions to alter
+the visuals}
 }
 \value{
-predictive accuracy plot is the mean predictive accuracy under different sample sizes.
-The X-axis represents different sample sizes and y-axis represents the mean predictive accuracy.
+predictive accuracy plot is the mean predictive accuracy under
+different sample sizes.
+The X-axis represents different sample sizes and y-axis represents the mean
+predictive accuracy.
 
-protein importance plot includes multiple subplots. The number of subplots is equal to `list_samples_per_group'.
-Each subplot shows the top `num_important_proteins_show' most important proteins under each sample size.
-The Y-axis of each subplot is the protein name and X-axis is the mean protein importance under the sample size.
+protein importance plot includes multiple subplots. The number of
+subplots is equal to `list_samples_per_group`. Each subplot shows the top
+`num_important_proteins_show` most important proteins under each sample size.
+The Y-axis of each subplot is the protein name and X-axis is the mean protein
+importance under the sample size.
 
-a numeric value which is the estimated optimal sample size per group for the input dataset for classification problem.
+a numeric value which is the estimated optimal sample size per group
+for the input dataset for classification problem.
 }
 \description{
-To illustrate the mean classification accuracy and protein importance under different sample sizes
+To illustrate the mean classification accuracy and protein
+importance under different sample sizes
 through predictive accuracy plot and protein importance plot.
 }
 \details{
 This function visualizes for sample size calculation in classification.
-Mean predictive accuracy and mean protein importance under each sample size is from the input `data',
-which is the output from function \code{\link{designSampleSizeClassification}}.
+Mean predictive accuracy and mean protein importance under each sample size
+is from the input `data', which is the output from function
+\code{\link{designSampleSizeClassification}}.
 
-To illustrate the mean predictive accuracy and protein importance under different sample sizes,
-it generates two types of plots in pdf files as output: (1) The predictive accuracy plot,
-The X-axis represents different sample sizes and y-axis represents the mean predictive accuracy.
+To illustrate the mean predictive accuracy and protein importance under
+different sample sizes, it generates two types of plots in pdf files as
+output: (1) The predictive accuracy plot, The X-axis represents different
+sample sizes and y-axis represents the mean predictive accuracy.
 The reported sample size per condition can be used to design future experiment
 
 (2) The protein importance plot includes multiple subplots.
 The number of subplots is equal to `list_samples_per_group'.
-Each subplot shows the top `num_important_proteins_show` most important proteins under each sample size.
-The Y-axis of each subplot is the protein name and X-axis is the mean protein importance under the sample size.
+Each subplot shows the top `num_important_proteins_show` most important
+proteins under each sample size. The Y-axis of each subplot is the protein
+name and X-axis is the mean protein importance under the sample size.
 }
 \examples{
 data(OV_SRM_train)
@@ -125,11 +110,13 @@ for(i in seq_along(list_samples_per_group)){
     multiple_sample_sizes[[i]] <- res
 }
 
-## make the plots
-designSampleSizeClassificationPlots(data = multiple_sample_sizes,
-                                    list_samples_per_group = list_samples_per_group)
+## make the plots and save them to disk
+designSampleSizeClassificationPlots(data = multiple_sample_sizes, save.pdf = TRUE)
+
+## make accuracy plot print in the Plots panes
+designSampleSizeClassificationPlots(data = multiple_sample_sizes, predictive_accuracy_plot = TRUE)
 
 }
 \author{
-Ting Huang, Meena Choi, Olga Vitek.
+Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek.
 }

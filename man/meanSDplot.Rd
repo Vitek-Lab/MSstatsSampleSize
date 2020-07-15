@@ -6,23 +6,16 @@
 \usage{
 meanSDplot(
   data,
-  x.axis.size = 10,
-  y.axis.size = 10,
   smoother_size = 1,
   xlimUp = 30,
   ylimUp = 3,
-  height = 4,
-  width = 4,
-  address = ""
+  save.pdf = FALSE,
+  ...
 )
 }
 \arguments{
 \item{data}{A list with mean protein abundance vector and standard deviation vector.
 It should be the output of \code{\link{estimateVar}} function.}
-
-\item{x.axis.size}{Size of x-axis labeling in Mean-SD Plot. Default is 10.}
-
-\item{y.axis.size}{Size of y-axis labels. Default is 10.}
 
 \item{smoother_size}{Size of lowess smoother. Default is 1.}
 
@@ -30,22 +23,18 @@ It should be the output of \code{\link{estimateVar}} function.}
 
 \item{ylimUp}{The upper limit of y-axis for mean-SD plot. Default is 3.}
 
-\item{height}{Height of the saved pdf file. Default is 4.}
-
-\item{width}{Width of the saved pdf file. Default is 4.}
-
-\item{address}{The name of folder that will store the results. Default folder is the current working directory.
-The other assigned folder has to be existed under the current working directory.
-An output pdf file is automatically created with the default name of `MeanSDPlot.pdf'.
-The command address can help to specify where to store the file as well as how to modify the beginning of the file name.
-If address=FALSE, plot will be not saved as pdf file but showed in window.}
+\item{save.pdf}{A logical input, determines to save the plots as a pdf or not,
+the pdf plot is saved in the current working directory, name of the created
+file is displayed on the console and logged for easier access}
 }
 \value{
-\emph{meanSDplot} is the plot for the mean protein abundance (X-axis) vs standard deviation (Y-axis).
+\emph{meanSDplot} is the plot for the mean protein abundance (X-axis)
+vs standard deviation (Y-axis).
 }
 \description{
-Draw the plot for the mean protein abundance vs standard deviation (square root of variance).
-The `lowess' function is used to fit the LOWESS smoother between mean protein abundance and standard deviation.
+Draw the plot for the mean protein abundance vs standard deviation
+(square root of variance). The `lowess` function is used to fit the LOWESS
+smoother between mean protein abundance and standard deviation.
 }
 \examples{
 data(OV_SRM_train)
@@ -58,5 +47,5 @@ meanSDplot(variance_estimation)
 
 }
 \author{
-Ting Huang, Meena Choi, Olga Vitek
+Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek
 }

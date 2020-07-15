@@ -2,6 +2,13 @@
 \title{MSstatsSampleSize News}
 \encoding{UTF-8}
 
+\section{Version 1.2.2, Bioconductor 3.11 Release (July 15th 2020)}{\itemize{
+\item
+update the log info system
+\item
+designSampleSizeClassification(): fix the bugs in classifiers nnet, logreg, naive_bayes and svmLinear
+}}
+
 \section{Version 1.2.1, Bioconductor 3.11 Release (July 2020)}{\itemize{
 \item
 estimateVar() and simulateDataset(): Add log2Trans option

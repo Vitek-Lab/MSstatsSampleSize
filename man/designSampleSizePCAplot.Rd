@@ -4,17 +4,7 @@
 \alias{designSampleSizePCAplot}
 \title{PCA plot for each simulation}
 \usage{
-designSampleSizePCAplot(
-  simulations,
-  which.PCA = "all",
-  x.axis.size = 10,
-  y.axis.size = 10,
-  dot.size = 3,
-  legend.size = 7,
-  width = 6,
-  height = 5,
-  address = ""
-)
+designSampleSizePCAplot(simulations, which.PCA = "all", save.pdf = TRUE, ...)
 }
 \arguments{
 \item{simulations}{A list of simulated datasets. It should be the output of \code{\link{simulateDataset}} function.}
@@ -24,6 +14,10 @@ X should be index of simulation, such as "simulation1" or "simulation5".
 Default is "all", which generates all the plots.
 "allonly" generates the PCA plot for the whole input dataset.
 "simulationX" generates the PCA plot for a specific simulated dataset (given by index).}
+
+\item{save.pdf}{A logical input, determines to save the plots as a pdf or not,
+the pdf plot is saved in the current working directory, name of the created
+file is displayed on the console and logged for easier access}
 
 \item{x.axis.size}{size of x-axis labeling in PCA Plot. Default is 10.}
 
@@ -86,5 +80,5 @@ designSampleSizePCAplot(simulated_datasets)
 
 }
 \author{
-Ting Huang, Meena Choi, Olga Vitek
+Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek
 }

@@ -4,12 +4,12 @@
 \alias{.logGeneration}
 \title{Create log file}
 \usage{
-.logGeneration()
+.logGeneration(...)
 }
 \value{
-\emph{finalfile} The log file name
+\emph{con} A file connection to write the logs into
 
-\emph{processout} The current log information
+\emph{file} Name of the file to which connection is open
 }
 \description{
 Create log file

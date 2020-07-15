@@ -5,7 +5,7 @@
 \alias{classification_results}
 \title{Example of output from designSampleSizeClassification function}
 \format{
-A list with five elements
+A list with six elements
 }
 \usage{
 classification_results
@@ -20,10 +20,6 @@ The list should include the required elements as below.
 \itemize{
   \item num_proteins : the number of simulated proteins
   \item num_samples : a vector with the number of simulated samples in each condition
-  \item results : a list with `num_proteins' elements. Each element has
-  (1) classification models trained on each simulated dataset;
-  (2) the predictive accuracy on the validation set predicted
-  by the corresponding classification model.
   \item mean_predictive_accuracy : the mean predictive accuracy over all the simulated datasets.
   \item mean_feature_importance : the mean protein importance vector over all the simulated datasets,
   the length of which is `num_proteins'.

@@ -17,7 +17,8 @@ simulateDataset(
   expected_FC = "data",
   list_diff_proteins = NULL,
   simulate_validation = FALSE,
-  valid_samples_per_group = 50
+  valid_samples_per_group = 50,
+  ...
 )
 }
 \arguments{
@@ -159,5 +160,5 @@ head(simulated_datasets$simulation_train_Ys[[1]]) # first simulation
 
 }
 \author{
-Ting Huang, Meena Choi, Olga Vitek.
+Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek.
 }

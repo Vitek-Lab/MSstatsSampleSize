@@ -1,45 +1,56 @@
-#' Estimate the mean predictive accuracy and mean protein importance over all the simulated datasets
+#' Estimate the mean predictive accuracy and mean protein importance over all
+#' the simulated datasets
 #' @details This function fits the classification model,
-#' in order to classify the subjects in each simulated training dataset (the output of \code{\link{simulateDataset}}).
-#' Then the fitted model is validated on the (simulated) validation set (the output of \code{\link{simulateDataset}}).
+#' in order to classify the subjects in each simulated training dataset (the
+#' output of \code{\link{simulateDataset}}).
+#' Then the fitted model is validated on the (simulated) validation set (the
+#' output of \code{\link{simulateDataset}}).
 
 #' Two performance are reported :
 #'
-#' (1) the mean predictive accuracy : The function trains classifier on each simulated training dataset and
-#' reports the predictive accuracy of the trained classifier on the validation data (output of \code{\link{simulateDataset}} function).
+#' (1) the mean predictive accuracy : The function trains classifier on each
+#' simulated training dataset and reports the predictive accuracy of the trained
+#' classifier on the validation data (output of \code{\link{simulateDataset}} function).
 #' Then these predictive accuracies are averaged over all the simulation.
 #'
-#' (2) the mean protein importance : It represents the importance of a protein in separating different groups.
-#' It is estimated on each simulated training dataset using function `varImp' from package caret. Please refer to the help file of `varImp' about
-#' how each classifier calculates the protein importance. Then these importance values for each protein are averaged over all the simulation.
+#' (2) the mean protein importance : It represents the importance of a protein
+#' in separating different groups. It is estimated on each simulated training
+#' dataset using function `varImp` from package caret. Please refer to the help
+#' file of `varImp` about how each classifier calculates the protein importance.
+#' Then these importance values for each protein are averaged over all the simulation.
 #'
-#' The list of classification models trained on each simulated dataset, the predictive accuracy
-#' on the validation set predicted by the corresponding classification model and
-#' the importance value for all the proteins estimated by the corresponding classification model
-#' are also reported.
+#' The list of classification models trained on each simulated dataset,
+#' the predictive accuracy on the validation set predicted by the corresponding
+#' classification model and the importance value for all the proteins estimated
+#' by the corresponding classification model are also reported.
 #'
-#' @param simulations A list of simulated datasets It should be the name of the output of \code{\link{simulateDataset}} function.
-#' @param classifier A string specifying which classfier to use. This function uses function `train' from package caret.
-#' The options are 1) rf (random forest calssifier, default option). 2) nnet (neural network),
-#' 3) svmLinear (support vector machines with linear kernel), 4) logreg (logistic regression), and 5) naive_bayes (naive_bayes).
-#' @param top_K the number of proteins selected as important features (biomarker candidates).
-#' All the proteins are ranked in descending order based on its importance to separate different groups and
-#' the `top_K` proteins are selected as important features.
+#' @param simulations A list of simulated datasets It should be the name of the
+#' output of \code{\link{simulateDataset}} function.
+#' @param classifier A string specifying which classfier to use. This function
+#' uses function `train' from package caret. The options are 1) rf (random
+#' forest calssifier, default option). 2) nnet (neural network), 3) svmLinear
+#' (support vector machines with linear kernel), 4) logreg (logistic regression),
+#' and 5) naive_bayes (naive_bayes).
+#' @param top_K the number of proteins selected as important features
+#' (biomarker candidates). All the proteins are ranked in descending order based
+#' on its importance to separate different groups and the `top_K` proteins are
+#' selected as important features.
 #' @param parallel Default is FALSE. If TRUE, parallel computation is performed.
 #'
-#' @return \emph{num_proteins} is the number of simulated proteins.
-#'  It should be the same as one of the output from \emph{simulateDataset}, called \emph{num_proteins}
-#' @return \emph{num_samples} is a vector with the number of simulated samples in each condition.
-#'  It should be the same as one of the output from \emph{simulateDataset}, called \emph{num_samples}
-#' @return \emph{mean_predictive_accuracy} is the mean predictive accuracy over all the simulated datasets,
-#' which have same `num_proteins' and `num_samples'.
-#' @return \emph{mean_feature_importance} is the mean protein importance vector over all the simulated datasets,
-#' the length of which is `num_proteins'.
-#' @return \emph{predictive_accuracy} is a vector of predictive accuracy on each simulated dataset.
-#' @return \emph{feature_importance} is a matrix of feature importance, where rows are proteins and columns are simulated datasets.
-#' @return \emph{results} is the list of classification models trained on each simulated dataset and
-#' the predictive accuracy on the validation set predicted by the corresponding classification model.
-#' @author Ting Huang, Meena Choi, Olga Vitek
+#' @return \emph{num_proteins} is the number of simulated proteins. It should be
+#' the same as one of the output from \emph{simulateDataset}, called \emph{num_proteins}
+#' @return \emph{num_samples} is a vector with the number of simulated samples
+#' in each condition. It should be the same as one of the output from
+#' \emph{simulateDataset}, called \emph{num_samples}
+#' @return \emph{mean_predictive_accuracy} is the mean predictive accuracy over
+#' all the simulated datasets, which have same `num_proteins' and `num_samples'.
+#' @return \emph{mean_feature_importance} is the mean protein importance vector
+#' over all the simulated datasets, the length of which is `num_proteins'.
+#' @return \emph{predictive_accuracy} is a vector of predictive accuracy on each
+#' simulated dataset.
+#' @return \emph{feature_importance} is a matrix of feature importance, where
+#' rows are proteins and columns are simulated datasets.
+#' @author Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek
 #'
 #' @examples data(OV_SRM_train)
 #' data(OV_SRM_train_annotation)
@@ -89,178 +100,135 @@
 designSampleSizeClassification <- function(simulations,
                                            classifier = "rf",
                                            top_K = 10,
-                                           parallel = FALSE) {
+                                           parallel = FALSE, ...) {
 
     ###############################################################################
     ## log file
     ## save process output in each step
-    loginfo <- .logGeneration()
-    finalfile <- loginfo$finalfile
-    processout <- loginfo$processout
-
-    processout <- rbind(processout,
-                        as.matrix(c(" ", " ", "MSstatsSampleSize - designSampleSizeClassification function", " "), ncol=1))
-
-    ###############################################################################
-    ## Input and option checking
-
-    ## 1. input  should be the output of SimulateDataset function
-    if ( !is.element('simulation_train_Xs', names(simulations)) | !is.element('simulation_train_Ys', names(simulations)) ) {
-
-        processout <- rbind(processout,
-                            "The required input - simulations : did not process from SimulateDataset function. - stop")
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-        stop("Please use 'SimulateDataset' first. Then use output of SimulateDataset function as input in designSampleSizeClassification.")
+    dots <- list(...)
+    session <- dots$session
+    func <- as.list(sys.call())[[1]]
+    if(is.null(dots$log_conn)){
+        conn = mget("LOG_FILE", envir = .GlobalEnv,
+                    ifnotfound = NA)
+        if(is.na(conn)){
+            rm(conn)
+            conn <- .logGeneration()
+        } else{
+            conn <- .logGeneration(file = conn$LOG_FILE)
+        }
+    }else{
+        conn <- dots$log_conn
     }
+    res <- .catch_faults({
+        ###############################################################################
+        ## Input and option checking
 
-    ## 2. input for classifier option
-    if ( !any(classifier == c('rf', 'nnet', 'svmLinear', 'logreg', 'naive_bayes')) ) {
-        processout <- rbind(processout, c("ERROR: `classifier` should be one of 'rf', 'nnet', 'svmLinear', 'logreg', and 'naive_bayes'. Please check it."))
-        write.table(processout, file=finalfile, row.names=FALSE)
+        ## 1. input  should be the output of SimulateDataset function
+        if(!is.element('simulation_train_Xs', names(simulations)) |
+           !is.element('simulation_train_Ys', names(simulations))) {
 
-        stop("`classifier` should be one of 'rf', 'nnet', 'svmLinear', 'logreg', and 'naive_bayes'. Please check it. \n")
-    }
-    processout <- rbind(processout, c(paste0("classifier : ", classifier)))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" classifier: ", classifier)
+            stop("CALL_",func,"Please use 'SimulateDataset' first. Then use ",
+                 "output of simulateDataset function as input in ",
+                 "designSampleSizeClassification.")
+        }
 
-    ## 3. input for top_K option
-    if (is.null(top_K) ) {
-        processout <- rbind(processout, c("ERROR : top_K is required. Please provide the value for top_K."))
-        write.table(processout, file=finalfile, row.names=FALSE)
+        ## 2. input for classifier option
+        if(!any(classifier == c('rf', 'nnet', 'svmLinear', 'logreg', 'naive_bayes'))) {
+            stop("CALL_",func,"`classifier` should be one of 'rf', 'nnet',",
+                 "'svmLinear', 'logreg', and 'naive_bayes'. Please check it.")
+        }
+        .status(sprintf("classifier : %s", classifier), log = conn$con,
+                func = func)
 
-        stop("top_K is required. Please provide the value for top_K. \n")
+        ## 3. input for top_K option
+        if(is.null(top_K)){
+            stop("CALL_",func,"top_K is required. Please provide the value for top_K.")
 
-    } else if ( top_K < 0 | top_K > simulations$num_proteins ) {
-        processout <- rbind(processout,
-                            c(paste0("ERROR : top_K should be between 0 and the total number of protein(", simulations$num_proteins,
-                                     "). Please check the value for top_K")))
-        write.table(processout, file=finalfile, row.names=FALSE)
+        } else if (top_K < 0 | top_K > simulations$num_proteins){
+            stop("CALL_",func,
+                 sprintf("_top_K should be between 0 and the total number of
+                     protein (%s).  Please check the value for top_K",
+                         simulations$num_proteins))
+        }
+        .status(sprintf("top_K = %s", top_K), log = conn$con, func = func)
 
-        stop(paste0("top_K should be between 0 and the total number of protein(", simulations$num_proteins,
-                    "). Please check the value for top_K \n"))
-    }
-    processout <- rbind(processout, c(paste0("top_K = ", top_K)))
-    write.table(processout, file=finalfile, row.names=FALSE)
+        ###############################################################################
+        ## start to train classifier
 
+        .status("Start to train classifier...", log = conn$con, func = func)
 
-    ###############################################################################
-    ## start to train classifier
-
-    processout <- rbind(processout, c(" Start to train classifier..."))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" Start to train classifier...")
-
-    ## get the validation set for prediction
-    iter <- length(simulations$simulation_train_Xs) # number of simulations
-    num_proteins <- simulations$num_proteins
-    num_samples <- simulations$num_samples
-    valid_x <- simulations$valid_X
-    valid_y <- simulations$valid_Y
-
-    ## if parallel TRUE,
-    if(parallel){
-
-        # ## create cluster for paralleled workflow
-        # message(paste0("Cluster Size: ", threads,"\n"))
-        #
-        # ## allocate resource for parallel computation
-        # param <- SnowParam(workers = threads, type = "SOCK")
-
-        # ## fit the classifier for each simulation dataset
-        # results <- bplapply(1:iter, .classificationPerformance,
-        #                     classifier=classifier,
-        #                     train_x_list = simulations$simulation_train_Xs,
-        #                     train_y_list = simulations$simulation_train_Ys,
-        #                     valid_x = valid_x,
-        #                     valid_y = valid_y,
-        #                     BPPARAM=param,
-        #                     top_K = top_K)
-
-        ## fit the classifier for each simulation dataset
-        results <- bplapply(seq_len(iter), .classificationPerformance,
-                            classifier=classifier,
-                            train_x_list = simulations$simulation_train_Xs,
-                            train_y_list = simulations$simulation_train_Ys,
-                            valid_x = valid_x,
-                            valid_y = valid_y,
-                            top_K = top_K)
+        ## get the validation set for prediction
+        iter <- length(simulations$simulation_train_Xs) # number of simulations
+        num_proteins <- simulations$num_proteins
+        num_samples <- simulations$num_samples
+        valid_x <- simulations$valid_X
+        valid_y <- simulations$valid_Y
+        tunegrid <- .tuning_params(classifier = classifier)
+        ## if parallel TRUE,
+        if(parallel){
+            .status("Using parallel backend", log = conn$con, func = func)
+            ## fit the classifier for each simulation dataset
+            results <- bplapply(seq_len(iter), .classification_performance,
+                                classifier=classifier,
+                                train_x_list = simulations$simulation_train_Xs,
+                                train_y_list = simulations$simulation_train_Ys,
+                                valid_x = valid_x, valid_y = valid_y,
+                                top_K = top_K, tunegrid = tunegrid)
 
 
-    } else { ## if parallel FALSE,
-        # ## show progress
-        # pb <- txtProgressBar(max = iter, style = 3)
-        # ## progress
-        # setTxtProgressBar(pb, i)
-        # close(pb)
+        } else {
+            ## fit the classifier for each simulation dataset
+            results <- lapply(seq_len(iter),
+                              .classification_performance,
+                              classifier=classifier,
+                              train_x_list = simulations$simulation_train_Xs,
+                              train_y_list = simulations$simulation_train_Ys,
+                              valid_x = valid_x,  valid_y = valid_y,
+                              top_K = top_K,  tunegrid = tunegrid)
 
-        ## fit the classifier for each simulation dataset
-        results <- lapply(seq_len(iter),
-                          .classificationPerformance,
-                          classifier=classifier,
-                          train_x_list = simulations$simulation_train_Xs,
-                          train_y_list = simulations$simulation_train_Ys,
-                          valid_x = valid_x,
-                          valid_y = valid_y,
-                          top_K = top_K)
+        }
 
-    }
+        ## calculate the mean predictive accuracy over all the simulations
+        PA <- NULL
 
-    ## calculate the mean predictive accuracy over all the simulations
-    PA <- NULL
+        ## calculate the frequency a protein is selected as important (biomarker candidates)
+        FI <- data.frame('proteins' = names(valid_x))
 
-    ## calculate the frequency a protein is selected as important (biomarker candidates)
-    FI <- NULL
-    features <- rownames(varImp(results[[1]]$model, scale = TRUE)$importance)
+        for (i in seq_along(results)) {
+            # record the importance of each protein
+            PA <- c(PA, results[[i]]$acc)
+            imp <- results[[i]]$f_imp
+            FI <- cbind(FI, with(FI, ifelse(proteins %in% imp,1,0)))
+        }
 
-    for (i in seq_len(iter)) {
-        # record the importance of each protein
-        PA <- c(PA, results[[i]]$acc)
+        names(FI) <- c('proteins', paste0("simulation", seq_along(results)))
+        ## report the training and validating done
+        .status("Finish to train classifier and to check the performance.",
+                log = conn$con, func = func)
 
-        # record the importance of each protein
-        imp <- varImp(results[[i]]$model, scale = TRUE)$importance
-        # select the top-k important proteins
-        imp.prots <- rownames(imp)[order(imp, decreasing=TRUE)][seq_len(top_K)]
-        # if important, set 1; otherwise,set 0
-        imp$Important <- ifelse(rownames(imp) %in% imp.prots, 1, 0)
+        names(PA) <- names(FI)[-1]
 
-        FI <- cbind(FI, imp[features, "Important"])
+        # calculate mean predictive accuracy
+        meanPA <-  mean(PA)
+        # calculate mean feature importance
+        meanFI <-  rowSums(FI[,-1], na.rm = T)
+        names(meanFI) <- FI$proteins
+        # sort in descending order
+        meanFI <- sort(meanFI, decreasing=TRUE)
 
-    }
+        .status("Report the mean predictive accuracy and mean feature importance.",
+                log = conn$con, func = func)
 
-    ## report the training and validating done
-    processout <- rbind(processout, c(" Finish to train classifier and to check the performance."))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" Finish to train classifier and to check the performance.")
+        list(num_proteins = num_proteins, # number of proteins
+             num_samples = num_samples, # number of samples per group
+             mean_predictive_accuracy = meanPA, # mean predictive accuracy
+             mean_feature_importance = meanFI, # vector of mean feature importance
+             predictive_accuracy = PA, # vector of predictive accuracy
+             feature_importance = FI  # matrix of feature importance
+        )
+    }, conn = conn, session = session)
+    class(res) <- c('list', 'ssclassification')
 
-    # assign simulation index
-    simulation_index <- paste0("simulation", seq_len(iter))
-    rownames(FI) <- features
-    colnames(FI) <- simulation_index
-    names(PA) <- simulation_index
-
-    # calculate mean predictive accuracy
-    meanPA <-  mean(PA)
-
-    # calculate mean feature importance
-    meanFI <-  rowSums(FI)
-    names(meanFI) <- features
-    # sort in descending order
-    meanFI <- sort(meanFI, decreasing=TRUE)
-
-    processout <- rbind(processout, c(" Report the mean predictive accuracy and mean feature importance."))
-    write.table(processout, file=finalfile, row.names=FALSE)
-    message(" Report the mean predictive accuracy and mean feature importance.")
-
-    return(list(num_proteins = num_proteins, # number of proteins
-                num_samples = num_samples, # number of samples per group
-                mean_predictive_accuracy = meanPA, # mean predictive accuracy
-                mean_feature_importance = meanFI, # vector of mean feature importance
-                predictive_accuracy = PA, # vector of predictive accuracy
-                feature_importance = FI,  # matrix of feature importance
-                results = results # fitted models
-                ))
-
+    return(res)
 }
-
