@@ -155,7 +155,9 @@ designSampleSizeClassificationPlots <- function(data,
                                   optimal_ss = opt_val)
         }else{
             opt_val <- unique(acc_tbl$sample)
-            y_lim <- c(min(df$acc)-0.1, 1)
+            y_lim <- c(min(acc_tbl$acc)-0.1, 1)
+            acc_tbl$fill_col <- 'red'
+            acc_tbl$mean_acc <- mean(acc_tbl$acc, na.rm = T)
             acc_plot <- .plot_acc(df = acc_tbl, y_lim = y_lim,
                                   optimal_ss = opt_val)
         }
@@ -171,31 +173,27 @@ designSampleSizeClassificationPlots <- function(data,
                 pdf(file = file)
                 print(acc_plot)
                 dev.off()
+                .status(detail = sprintf("Accuracy Plot stored at %s", file),
+                        log = conn$con, func = func, ...)
             }
             
             if(protein_importance_plot){
                 file <- sprintf("Protein_importance_plot_%s.pdf",
                                 format(Sys.time(), "%Y%m%d%H%M%S"))
                 plots <- list()
+                pdf(file = file)
                 for(i in unique(f_imp$sample)){
                     df <- subset(f_imp, sample == i)
-                    plots <- append(plots,
-                                    list(.plot_imp(df = df, sample = i,
-                                                   ylim = ylim_imp,
-                                                   x.axis.size = 6, y.axis.size = 6,
-                                                   margin = 0.5)))
+                    print(.plot_imp(df = df, sample = i,
+                                    ylim = ylim_imp,
+                                    x.axis.size = 6, y.axis.size = 6,
+                                    margin = 0.5))
                 }
+                dev.off()
+                .status(detail = sprintf("Protein Importance plots stored at %s",
+                                         file), log = conn$con, func = func, ...)
             }
-            seqs <- seq(4,length(plots), 4)
             
-            library(gridExtra)
-            pdf(file = file)
-            for(i in seqs){
-                .status(sprintf("Plotting %s plot", i), log = conn$con,
-                        func = func, ...)
-                do.call("grid.arrange", c(plots[(i-3):i], ncol=2, nrow=2))
-            }
-            dev.off()
             p <- NULL
         } else if (predictive_accuracy_plot){
             p <- acc_plot
