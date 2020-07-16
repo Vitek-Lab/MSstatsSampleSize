@@ -370,11 +370,13 @@
 #' @param exp_var A vector containing numeric values of the expected variance
 .pca_plot <- function(data, exp_var, ...){
     dots <- list(...)
+    title <- ifelse(is.null(dots$title),"Input dataset", dots$title)
+                    
     p <- ggplot(data = data,
                 aes(x = PC1, y = PC2, color = group)) +
         geom_point(size =  ifelse(is.null(dots$dot_size), 3, dots$dot_size)) + 
         stat_ellipse()+
-        labs(title = ifelse(is.null(dots$title),"Input dataset", dots$title),
+        labs(title = title,
              x = sprintf("PC1 (%s%% explained var.)", exp_var[1]),
              y = sprintf("PC2 (%s%% explained var.)", exp_var[2])) +
         theme_MSstats(...)
@@ -444,9 +446,10 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
                          legend.key = element_rect(fill = "white", 
                                                    colour = "white"),
                          legend.direction = leg.dir,
+                         legend.position = leg.pos, 
                          legend.text = element_text(size = legend.size), 
                          legend.title = element_blank(),
-                         plot.margin = unit(rep(margin,4), "cm"),...)
+                         plot.margin = unit(rep(margin,4), "cm"))
     
     if(!download)
         th <- th + ggplot2::theme(legend.position=c(1, 1.05),
