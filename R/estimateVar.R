@@ -50,18 +50,8 @@ estimateVar <- function(data, annotation, log2Trans = F, ...) {
     ## save process output in each step
     dots <- list(...)
     session <- dots$session
-    if(is.null(dots$log_conn)){
-        conn = mget("LOG_FILE", envir = .GlobalEnv,
-                    ifnotfound = NA)
-        if(is.na(conn)){
-            rm(conn)
-            conn <- .logGeneration()
-        } else{
-            conn <- .logGeneration(file = conn$LOG_FILE)   
-        }
-    }else{
-        conn <- dots$log_conn
-    }
+    conn <- .find_log(...)
+    
     
     func <- as.list(sys.call())[[1]]
     res <- .catch_faults({

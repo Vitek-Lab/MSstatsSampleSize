@@ -69,18 +69,7 @@ designSampleSizePCAplot <- function(simulations, which.PCA = "all", save.pdf = T
     session <- dots$session
     func <- as.list(sys.call())[[1]]
     pc_plot <- list()
-    if(is.null(dots$log_conn)){
-        conn = mget("LOG_FILE", envir = .GlobalEnv,
-                    ifnotfound = NA)
-        if(is.na(conn)){
-            rm(conn)
-            conn <- .logGeneration()
-        } else{
-            conn <- .logGeneration(file = conn$LOG_FILE)   
-        }
-    }else{
-        conn <- dots$log_conn
-    }
+    conn <- .find_log(...)
     
     ## parameter checking: which.PCA
     if (!(length(which.PCA) == 1 & (which.PCA %in% c("all", "data") |

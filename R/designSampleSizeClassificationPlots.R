@@ -107,18 +107,7 @@ designSampleSizeClassificationPlots <- function(data,
     dots <- list(...)
     session <- dots$session
     func <- as.list(sys.call())[[1]]
-    if(is.null(dots$log_conn)){
-        conn = mget("LOG_FILE", envir = .GlobalEnv,
-                    ifnotfound = NA)
-        if(is.na(conn)){
-            rm(conn)
-            conn <- .logGeneration()
-        } else{
-            conn <- .logGeneration(file = conn$LOG_FILE)   
-        }
-    }else{
-        conn <- dots$log_conn
-    }
+    conn <- .find_log(...)
     ################################################################################
     
     res <- .catch_faults({

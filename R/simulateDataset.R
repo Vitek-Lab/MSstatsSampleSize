@@ -130,18 +130,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
     dots <- list(...)
     session <- dots$session
     func <- as.list(sys.call())[[1]]
-    if(is.null(dots$log_conn)){
-        conn = mget("LOG_FILE", envir = .GlobalEnv,
-                    ifnotfound = NA)
-        if(is.na(conn)){
-            rm(conn)
-            conn <- .logGeneration()
-        } else{
-            conn <- .logGeneration(file = conn$LOG_FILE)   
-        }
-    }else{
-        conn <- dots$log_conn
-    }
+    conn <- .find_log(...)
     
     ##### Simulation Process ####
     res <- .catch_faults({
@@ -151,7 +140,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
                                       log2Trans = log2Trans) 
         }else{
             .status(detail = "Using provided estimated means and variance",
-                    log = conn$con, func = func, ...)
+                    log = conn$con, ...)
             parameters <- dots$parameters
         }
         
@@ -165,7 +154,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
             stop("CALL_", func, "_Please use more than 10 simulations.")
         }
         .status(detail = sprintf("Number of Simulations = %s", num_simulations),
-                log = conn$con, func = func, ...)
+                log = conn$con, ...)
         
         #### 2.2 samples_per_group ####
         if(!is.numeric(samples_per_group)){
@@ -178,7 +167,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
                     func = func, ...)
         }
         .status(detail = sprintf("samples_per_group = %s", samples_per_group),
-                log = conn$con, func = func, ...)
+                log = conn$con, ...)
         
         #### 2.3 protein_rank ####
         if(!protein_rank %in% c("mean", "sd", "combined") | 
@@ -187,7 +176,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
                  "`combined`. Please check it.")
         }
         .status(detail = sprintf("protein_rank = %s", protein_rank), 
-                log = conn$con, func = func, ...)
+                log = conn$con, ...)
         
         #### 2.4 protein_select ####
         if(protein_rank == "combined"){
@@ -203,7 +192,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
             }
         }
         .status(detail = sprintf("protein_select = %s", protein_select),
-                log = conn$con, func = func, ...)
+                log = conn$con, ...)
         
         #### 2.5 protein_quantile_cutoff ####
         if(protein_rank == "combined"){
@@ -225,7 +214,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
         }
         .status(detail = sprintf("protein_quantile_cutoff = %s",
                                  protein_quantile_cutoff),
-                log = conn$con, func = func, ...)
+                log = conn$con, ...)
         #### 2.6 expected_FC and list_diff_proteins ####
         if ( !is.element("data", expected_FC) & !is.element(1, expected_FC) ) {
             stop("CALL_", func,"_expected_FC should be `data` or a vector including 1.",
@@ -234,7 +223,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
         
         if(!is.element("data", expected_FC)){
             .status(detail = sprintf("expected_FC = %s", expected_FC),
-                    log = conn$con, func = func, ...)
+                    log = conn$con, ...)
         }
         
         #### 2.7 list_diff_proteins ####
@@ -246,7 +235,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
         if(!is.element("data", expected_FC)){
             .status(detail = sprintf("list_diff_proteins = %s", 
                                      paste(list_diff_proteins, collapse = ",")),
-                    log = conn$con, func = func, ...)
+                    log = conn$con, ...)
         }
         
         #### 2.8 simulated value ####
@@ -255,7 +244,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
                  "Please provide either TRUE or FALSE for simulate_validation.")
         }
         .status(detail = sprintf("simulate_validaiton = %s", simulate_validation),
-                log = conn$con, func = func, ...)
+                log = conn$con, ...)
         
         #### 2.9 valid_samples_per_group ####
         if(simulate_validation & (is.null(valid_samples_per_group) | 
@@ -266,8 +255,8 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
         }
         .status(detail = sprintf("valid_samples_per_group = %s",
                                  valid_samples_per_group),
-                log = conn$con, func = func, ...)
-        .status("Preparing simulation...", log = conn$con, func = func, ...)
+                log = conn$con, ...)
+        .status("Preparing simulation...", log = conn$con, ...)
         #### 3. Prepare the parameters for simulation experiment ####
         mu <- parameters$mu
         sigma <- parameters$sigma
@@ -336,7 +325,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
                 
                 .status(detail= sprintf("NOTE : %s%% list_diff_proteins are selected to simulate based on protein_quantile_cutoff", 
                                         round(length(selected_diff_proteins)/length(list_diff_proteins), 4)*100),
-                        log = conn$con, func = func, ...)
+                        log = conn$con, ...)
             }
             
             for(i in seq_along(otherlines)){
@@ -356,7 +345,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
         train_size <- samples_per_group * ngroup
         
         .status(detail = sprintf("Size of training data to simulate: %s", train_size),
-                log = conn$con, func = func, ...)
+                log = conn$con, ...)
         
         ## prepare the validation set
         # 1.  simulate samples in the validation data
@@ -377,9 +366,8 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
         
         protein_num <- length(selectedPros)
         .status(detail = sprintf("Number of proteins to simulate: %s", protein_num),
-                log = conn$con, func = func, ...)
-        .status(detail = "Start to run the simulation", log = conn$con, func = func,
-                ...)
+                log = conn$con, ...)
+        .status(detail = "Start to run the simulation", log = conn$con, ...)
         
         simulation_train_Xs <- list()
         simulation_train_Ys <- list()
@@ -399,7 +387,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
             simulation_train_Ys[[paste("Simulation", i, sep="")]] <- Y
         }
         
-        .status(detail = "Simulation completed.", log = conn$con, func = func, ...)
+        .status(detail = "Simulation completed.", log = conn$con, ...)
         
         list(num_proteins = protein_num, # number of proteins
              num_samples = num_samples, # number of samples per group
