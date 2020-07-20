@@ -91,6 +91,7 @@
     return(run)
 }
 
+
 #' @title Feature Importance
 #' @description The method .feature_importance() finds variables importances
 #' for the given model and selects the top n features
@@ -154,11 +155,15 @@
 }
 
 
-
 .tuning_params <- function(classifier, mtry = 2, size = 5, decay = 0.1, C = 1,
-                           laplace = 0, usekernel = F, adjust = 1){
+                           laplace = 0, usekernel = F, adjust = 1, ...){
     req_classifier <- c('rf','nnet','svmLinear', 'naive_bayes')
     func <- as.list(sys.call())[[1]]
+    dots <- list(...)
+    for (name in names(dots) ) {
+        assign(name, dots[[name]])
+    }
+    
     if(!classifier %in% req_classifier){
         stop("CALL_",func,"_Incorrect classifier, should be one of (",
              paste(req_classifier, collapse = ", "),")")
@@ -222,7 +227,9 @@
 #' @keywords internal
 .status <- function(detail, ...){
     dots <- list(...)
-    dots$func <- ifelse(is.null(dots$func),"'__'", as.character(dots$func))
+    dots$func <- ifelse(is.null(dots$func), as.character(as.list(
+        sys.call(-1))[[1]]),
+        as.character(dots$func))
     mess <- sprintf("CALL_%s_%s", dots$func, detail)
     if(!is.null(dots$log)){
         .log_write(log = mess, log_type = "INFO", conn = dots$log)
@@ -262,6 +269,25 @@
         close(conn$con)
     }
     return(res)
+}
+
+
+.find_log <- function(...){
+    dots <- list(...)
+    session <- dots$session
+    if(is.null(dots$log_conn)){
+        conn = mget("LOG_FILE", envir = .GlobalEnv,
+                    ifnotfound = NA)
+        if(is.na(conn)){
+            rm(conn)
+            conn <- .logGeneration()
+        } else{
+            conn <- .logGeneration(file = conn$LOG_FILE)   
+        }
+    }else{
+        conn <- dots$log_conn
+    }
+    return(conn)
 }
 
 
@@ -352,10 +378,10 @@
     if(is.logical(trans)){
         if(trans){
             data <- log2(data)
-            .status(detail = "Negative values if any where replaced with NA",
-                    log = conn$con, func = func, ...)
-            data[!is.na(data) & data < 0] <- NA   
         }
+        .status(detail = "Negative values if any where replaced with NA",
+                log = conn$con, func = func, ...)
+        data[!is.na(data) & data < 0] <- NA
         return(data)
     }else{
         stop("CALL_", func,
@@ -525,7 +551,10 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
 #' Plot Variable Importance
 #' @keywords internal
 #' @import ggplot2
-.plot_imp <- function(df, sample, ylim, facet = F,...){
+.plot_imp <- function(df, sample = NA, ylim, facet = F,...){
+    if(!is.na(sample)){
+        df <- subset(df, sample == sample)
+    }
     g <- ggplot(data = df, aes(x = reorder(protein, frequency), 
                                y = frequency))+
         geom_col()+
@@ -549,6 +578,39 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
 }
 
 
+#' @title Plot QC boxplots
+#' @description Plots an interactive plotly graphic with boxplots for all the 
+#' proteins and their respective conditions with abundance indicated in the log
+#' scale on the y axis
+#' @param data A formatted data.frame with abundance, bioreplicate and conditions 
+#' information
+#' @return A plotly object
+#' @keywords internal
+#' @import data.table
+qc_boxplot <- function(data = NULL ,annot = NULL){
+    #create the interactive boxplot for all the different proteins found in the data
+    data <- as.data.table(data, keep.rownames = T)
+    setnames(data, 'rn', 'proteins')
+    data <- melt(data, id.vars = 'proteins', variable.name = "BioReplicate",
+                 value.name = "Abundance")
+    annot <- as.data.table(annot)
+    data <- merge(data, annot, by = "BioReplicate") 
+    
+    box_plot <- plotly::plot_ly(data = data[!is.na(Abundance)],
+                                y = ~Abundance, x = ~BioReplicate, color = ~Condition,
+                                type = "box") %>%
+        plotly::layout(xaxis = list(title="Biological Replicate",showticklabels = TRUE,
+                                    tickangle = -45 ), 
+                       yaxis = list(title="Protein abundance"),
+                       legend = list(orientation = "h", #position and of the legend
+                                     xanchor = "center",
+                                     x = 0.5, y = 1.1)) %>%
+        plotly::config(displayModeBar = F) #hide controls of the plotly chart
+    
+    box_plot
+}
+
+
 .format_df <- function(dat, sample, top_n = NA){
     df <- stack(dat)
     df$sample <- sample
@@ -557,4 +619,74 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
     }else{
         return(df[seq_len(top_n),])   
     }
+}
+
+
+#' @title Get summary table for the annotation data
+#' @description Get the summary for the unique bioreplicates and number of
+#' MS runs for the data that is provided
+#' @param data A data.frame with the annotation data containing the Bioreplicates
+#' Runs and condition information
+#' @return A data.frame with the counts of bioreplicates for each conditions
+#' and the number of runs as well
+.format_summary_table <- function(data = NULL, session){
+    #create crosstable for the conditions vs bioreplicates
+    res <- .catch_faults({
+        data <- as.data.table(data)
+        biorep <- unique(data[,.(BioReplicate, Condition)])
+        biorep <- xtabs(~Condition, data = biorep)
+        
+        #create crosstable for the conditions vs runs if runs data exists
+        if(any(c("run","Run") %in% names(data))){
+            msruns <- unique(data[,.(Run, Condition)])
+            msruns <- xtabs(~Condition, data = msruns)
+        }else{
+            msruns <- rep(0, length(names(biorep)))
+            names(msruns) <- names(biorep) #make runs data 0 if not found
+        }
+        #format it correctly
+        #summary <- rbind(biorep, msruns)
+        summary <-matrix(biorep, nrow = 1)
+        colnames(summary) <- names(biorep)
+        summary <- summary[,which(colSums(summary, na.rm = T) > 0)]
+        sum_table <- matrix(summary, nrow=1)
+        #rownames(summary) <- c("# of Biological Replicates", "# of MS runs")
+        dimnames(sum_table) <- list("# of Biological Replicates", names(summary))
+    }, session = session)
+    return(res)
+}
+
+
+#' @title 
+#' @description A wrapper function to classify multiple simulated datasets
+#' @param n_samp A character vector consisting the of the different samples simulated
+#' @param sim_data A list object, output out the `simulate_grid` function
+#' @param classifier A string specifying the classifier to use
+#' @param k A integer value for the number of features to select
+#' @param session A session object for the shiny app
+#' @keywords internal
+ss_classify_caret <- function(n_samp, sim_data, classifier, k = 10,
+                              session = NULL, ...){
+    
+    dots <- list(...)
+    session <- dots$session
+    func <- as.list(sys.call())[[1]]
+    conn <- .find_log(...)
+    samp <- unlist(strsplit(n_samp,","))
+    res <-  list()
+    max_val <- length(sim_data)
+    iter <- 0
+    
+    for(i in seq_along(samp)){
+        if(!is.null(session)){
+            #Provides progress bars to the shiny UI
+            iter = iter + 1/max_val
+        }
+        .status(detail = sprintf("Classifying Sample %s of %s", i, length(samp)),
+                log = conn$con, session = session, value = iter)
+        res[[i]] <- designSampleSizeClassification(sim_data[[i]],
+                                                   classifier = classifier, 
+                                                   top_K = k, session = session)
+    }
+    return(res)
 }
