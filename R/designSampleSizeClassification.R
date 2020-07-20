@@ -110,19 +110,9 @@ designSampleSizeClassification <- function(simulations,
     ## save process output in each step
     dots <- list(...)
     session <- dots$session
+    conn <- .find_log(...)
     func <- as.list(sys.call())[[1]]
-    if(is.null(dots$log_conn)){
-        conn = mget("LOG_FILE", envir = .GlobalEnv,
-                    ifnotfound = NA)
-        if(is.na(conn)){
-            rm(conn)
-            conn <- .logGeneration()
-        } else{
-            conn <- .logGeneration(file = conn$LOG_FILE)   
-        }
-    }else{
-        conn <- dots$log_conn
-    }
+    
     res <- .catch_faults({
         ###############################################################################
         ## Input and option checking
@@ -154,12 +144,12 @@ designSampleSizeClassification <- function(simulations,
                      protein (%s).  Please check the value for top_K", 
                          simulations$num_proteins))
         }
-        .status(sprintf("top_K = %s", top_K), log = conn$con, func = func)
+        .status(sprintf("top_K = %s", top_K), log = conn$con)
         
         ###############################################################################
         ## start to train classifier
         
-        .status("Start to train classifier...", log = conn$con, func = func)
+        .status("Start to train classifier...", log = conn$con)
         
         ## get the validation set for prediction
         iter <- length(simulations$simulation_train_Xs) # number of simulations
@@ -167,10 +157,10 @@ designSampleSizeClassification <- function(simulations,
         num_samples <- simulations$num_samples
         valid_x <- simulations$valid_X
         valid_y <- simulations$valid_Y
-        tunegrid <- .tuning_params(classifier = classifier)
+        tunegrid <- .tuning_params(classifier = classifier, ...)
         ## if parallel TRUE,
         if(parallel){
-            .status("Using parallel backend", log = conn$con, func = func)
+            .status("Using parallel backend", log = conn$con)
             ## fit the classifier for each simulation dataset
             results <- bplapply(seq_len(iter), .classification_performance,
                                 classifier=classifier,
@@ -208,7 +198,7 @@ designSampleSizeClassification <- function(simulations,
         names(FI) <- c('proteins', paste0("simulation", seq_along(results)))
         ## report the training and validating done
         .status("Finish to train classifier and to check the performance.", 
-                log = conn$con, func = func)
+                log = conn$con)
         
         names(PA) <- names(FI)[-1]
         
@@ -221,7 +211,7 @@ designSampleSizeClassification <- function(simulations,
         meanFI <- sort(meanFI, decreasing=TRUE)
         
         .status("Report the mean predictive accuracy and mean feature importance.",
-                log = conn$con, func = func)
+                log = conn$con)
         
         list(num_proteins = num_proteins, # number of proteins
              num_samples = num_samples, # number of samples per group

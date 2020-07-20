@@ -168,13 +168,12 @@ designSampleSizeClassificationPlots <- function(data,
             if(predictive_accuracy_plot){
                 file <- sprintf("Accuracy_plot_%s.pdf",
                                 format(Sys.time(), "%Y%m%d%H%M%S"))
-                .status(detail = 'Plotting Accuracy plots', log = conn$con,
-                        func = func, ...)
+                .status(detail = 'Plotting Accuracy plots', log = conn$con, ...)
                 pdf(file = file)
                 print(acc_plot)
                 dev.off()
                 .status(detail = sprintf("Accuracy Plot stored at %s", file),
-                        log = conn$con, func = func, ...)
+                        log = conn$con, ...)
             }
             
             if(protein_importance_plot){
@@ -191,17 +190,21 @@ designSampleSizeClassificationPlots <- function(data,
                 }
                 dev.off()
                 .status(detail = sprintf("Protein Importance plots stored at %s",
-                                         file), log = conn$con, func = func, ...)
+                                         file), log = conn$con, ...)
             }
             
             p <- NULL
         } else if (predictive_accuracy_plot){
             p <- acc_plot
-        } else if(protein_importance_plot){
+        } else if(protein_importance_plot && !is.null(session)){
+            opt_val <- ifelse(is.null(dots$samp), opt_val, dots$samp)
+            p <- .plot_imp(df = f_imp, sample = opt_val, ylim = ylim_imp,
+                           facet = F)
+        } else if(protein_importance_plot && is.null(session)){
             p <- .plot_imp(df = f_imp, ylim = ylim_imp, facet = T)
         }
         .status(detail = sprintf("Estimated optimal sample size is %s", opt_val),
-                log = conn$con, func = func, ...)
+                log = conn$con, ...)
         
         return(list('optimal_size'=opt_val, 'plot' = p))
     }, conn = conn, session = session)
