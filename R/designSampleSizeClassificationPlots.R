@@ -172,7 +172,7 @@ designSampleSizeClassificationPlots <- function(data,
                 pdf(file = file)
                 for(i in unique(f_imp$sample)){
                     df <- subset(f_imp, sample == i)
-                    print(.plot_imp(df = df, sample = i,
+                    print(.plot_imp(df = df, samp = i,
                                     ylim = ylim_imp,
                                     x.axis.size = 6, y.axis.size = 6,
                                     margin = 0.5))
@@ -187,10 +187,10 @@ designSampleSizeClassificationPlots <- function(data,
             p <- acc_plot
         } else if(protein_importance_plot && !is.null(session)){
             opt_val <- ifelse(is.null(dots$samp), opt_val, dots$samp)
-            p <- .plot_imp(df = f_imp, sample = opt_val, ylim = ylim_imp,
-                           facet = F)
+            p <- .plot_imp(df = f_imp, samp = opt_val, ylim = ylim_imp,
+                           facet = FALSE)
         } else if(protein_importance_plot && is.null(session)){
-            p <- .plot_imp(df = f_imp, ylim = ylim_imp, facet = T)
+            p <- .plot_imp(df = f_imp, ylim = ylim_imp, facet = TRUE)
         }
         .status(detail = sprintf("Estimated optimal sample size is %s", opt_val),
                 log = conn$con, ...)

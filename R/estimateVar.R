@@ -43,7 +43,7 @@
 #' @importFrom utils sessionInfo read.table write.table
 #' @importFrom stats lm coef anova
 #'
-estimateVar <- function(data, annotation, log2Trans = F, ...) {
+estimateVar <- function(data, annotation, log2Trans = FALSE, ...) {
     
     ###############################################################################
     ## log file

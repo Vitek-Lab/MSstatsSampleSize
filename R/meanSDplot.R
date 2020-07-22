@@ -30,7 +30,7 @@
 #' @export
 #'
 meanSDplot <- function(data, smoother_size = 1, xlimUp = 30, ylimUp = 3, 
-                       save.pdf = F, ...){
+                       save.pdf = FALSE, ...){
     
     ..density.. <-  freq <- x <- y <- NULL
     ###############################################################################
@@ -46,7 +46,7 @@ meanSDplot <- function(data, smoother_size = 1, xlimUp = 30, ylimUp = 3,
     plotdata <- data.frame(mean=data$promean, sd=data$prosd)
     plot.lowess <- lowess(cbind(plotdata$mean, plotdata$sd))
     plot.lowess <- data.frame(x = plot.lowess$x, y = plot.lowess$y)
-    .status(detail = "Lowess data calculated", log = conn$con, func =func, ...)
+    .status(detail = "Lowess data calculated", log = conn$con, ...)
     
     meansdplot <-  ggplot(data = plotdata, aes(mean, sd)) +
         stat_density2d(aes(fill = ..density..^0.25), geom = "tile", 
@@ -67,10 +67,9 @@ meanSDplot <- function(data, smoother_size = 1, xlimUp = 30, ylimUp = 3,
         pdf(file, height = 5, width = 5)
         print(meansdplot)
         dev.off()
-        .status(detail = sprintf("File saved at %s", file), log = conn$con,
-                func = func, ...)
+        .status(detail = sprintf("File saved at %s", file), log = conn$con, ...)
     }
-    .status(detail = "MeanSD plot printed", log = conn$con, func = func, ...)
+    .status(detail = "MeanSD plot printed", log = conn$con, ...)
     
     return(meansdplot)
 }

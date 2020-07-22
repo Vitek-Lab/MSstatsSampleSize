@@ -265,7 +265,7 @@
         invokeRestart("muffleWarning")
     })
     assign("LOG_FILE", conn$file, envir = .GlobalEnv)
-    if(isOpen(conn$con)){
+    if(isOpen(conn$con) && is.null(session)){
         close(conn$con)
     }
     return(res)
@@ -551,9 +551,9 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
 #' Plot Variable Importance
 #' @keywords internal
 #' @import ggplot2
-.plot_imp <- function(df, sample = NA, ylim, facet = F,...){
-    if(!is.na(sample)){
-        df <- subset(df, sample == sample)
+.plot_imp <- function(df, samp = NA, ylim, facet = F,...){
+    if(!is.na(samp)){
+        df <- subset(df, sample == samp)
     }
     g <- ggplot(data = df, aes(x = reorder(protein, frequency), 
                                y = frequency))+
@@ -572,7 +572,7 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
             facet_wrap(sample~., ncol = 2, scales = 'free', labeller = titles_lb)
     }else{
         g <- g+
-            labs(title = sprintf("%s Samples/Group", sample))
+            labs(title = sprintf("%s Samples/Group", samp))
     }
     return(g)
 }
@@ -629,31 +629,29 @@ qc_boxplot <- function(data = NULL ,annot = NULL){
 #' Runs and condition information
 #' @return A data.frame with the counts of bioreplicates for each conditions
 #' and the number of runs as well
-.format_summary_table <- function(data = NULL, session){
+.format_summary_table <- function(data = NULL){
     #create crosstable for the conditions vs bioreplicates
-    res <- .catch_faults({
-        data <- as.data.table(data)
-        biorep <- unique(data[,.(BioReplicate, Condition)])
-        biorep <- xtabs(~Condition, data = biorep)
-        
-        #create crosstable for the conditions vs runs if runs data exists
-        if(any(c("run","Run") %in% names(data))){
-            msruns <- unique(data[,.(Run, Condition)])
-            msruns <- xtabs(~Condition, data = msruns)
-        }else{
-            msruns <- rep(0, length(names(biorep)))
-            names(msruns) <- names(biorep) #make runs data 0 if not found
-        }
-        #format it correctly
-        #summary <- rbind(biorep, msruns)
-        summary <-matrix(biorep, nrow = 1)
-        colnames(summary) <- names(biorep)
-        summary <- summary[,which(colSums(summary, na.rm = T) > 0)]
-        sum_table <- matrix(summary, nrow=1)
-        #rownames(summary) <- c("# of Biological Replicates", "# of MS runs")
-        dimnames(sum_table) <- list("# of Biological Replicates", names(summary))
-    }, session = session)
-    return(res)
+    data <- as.data.table(data)
+    biorep <- unique(data[,.(BioReplicate, Condition)])
+    biorep <- xtabs(~Condition, data = biorep)
+    
+    #create crosstable for the conditions vs runs if runs data exists
+    if(any(c("run","Run") %in% names(data))){
+        msruns <- unique(data[,.(Run, Condition)])
+        msruns <- xtabs(~Condition, data = msruns)
+    }else{
+        msruns <- rep(0, length(names(biorep)))
+        names(msruns) <- names(biorep) #make runs data 0 if not found
+    }
+    #format it correctly
+    #summary <- rbind(biorep, msruns)
+    summary <-matrix(biorep, nrow = 1)
+    colnames(summary) <- names(biorep)
+    summary <- summary[,which(colSums(summary, na.rm = T) > 0)]
+    sum_table <- matrix(summary, nrow=1)
+    #rownames(summary) <- c("# of Biological Replicates", "# of MS runs")
+    dimnames(sum_table) <- list("# of Biological Replicates", names(summary))
+    return(sum_table)
 }
 
 
@@ -670,7 +668,6 @@ ss_classify_caret <- function(n_samp, sim_data, classifier, k = 10,
     
     dots <- list(...)
     session <- dots$session
-    func <- as.list(sys.call())[[1]]
     conn <- .find_log(...)
     samp <- unlist(strsplit(n_samp,","))
     res <-  list()
@@ -686,7 +683,93 @@ ss_classify_caret <- function(n_samp, sim_data, classifier, k = 10,
                 log = conn$con, session = session, value = iter)
         res[[i]] <- designSampleSizeClassification(sim_data[[i]],
                                                    classifier = classifier, 
-                                                   top_K = k, session = session)
+                                                   top_K = k, session = session,
+                                                   ...)
     }
     return(res)
 }
+
+
+#' @title Simulate datasets to be tested out
+#' @description A wrapper function for the `simulateDataset` function from the 
+#' MSstatsSampleSize package which enables simulating datasets for running experiments
+#' @param data 
+#' @param annot
+#' @param num_simulations
+#' @param exp_fc
+#' @param list_diff_proteins
+#' @param sel_simulated_proteins
+#' @param prot_proportion
+#' @param prot_number
+#' @param samples_per_group
+#' @param sim_valid
+#' @param valid_samples_per_grp
+#' @param seed
+#' @param session
+#' @return 
+simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
+                          list_diff_proteins, samples_per_group, sim_valid,
+                          valid_samples_per_grp, seed, est_var, conn, 
+                          session = NULL){
+    #check if seed value required
+    .status(detail = "Setting Up Data Simulation Runs", value = 0.1,
+            session = session, log = conn$con)
+    if(seed != -1)
+        set.seed(seed)
+    
+    if(exp_fc != "data"){
+        .status(detail = "Extracting Fold Change Informations", value = 0.15, 
+               session = session, log = conn$con)
+        .status(detail = sprintf("List of differential proteins selected: (%s)", 
+                                list_diff_proteins), session = session, 
+                log = conn$con)
+        
+        diff_prots <- unlist(strsplit(list_diff_proteins, ","))
+        fc <- exp_fc$`Fold Change Value`
+        names(fc) <- exp_fc$orig_group
+    } else{
+        diff_prots <- NULL
+        fc <- exp_fc
+    }
+    .status(detail = "Extracting Number of Samples Information", value = 0.2,
+            session = session, log = conn$con)
+    .status(detail = sprintf("Number of samples per group: (%s)",
+                             samples_per_group),
+            session = session , log = conn$con)
+    
+    samp <- as.numeric(unlist(strsplit(samples_per_group, ",")))
+    shiny::validate(shiny::need(all(!is.na(samp)),
+                                sprintf("Samples Per Group need to be numeric values, Found : %s",
+                                        samples_per_group)),
+                    shiny::need(all(samp >= 1), "All samples Need to be >= 1"))
+    
+    if(sim_valid){
+        .status(detail = "Validation Simulation requested", value = 0.2,
+                session = session, log = conn$con)
+    }
+    
+    .status(detail = "Starting Simulation", value = 0.3, session = session,
+            log = conn$con)
+    
+    sim <- list()
+    for(i in samp){
+        .status(detail = sprintf("Running Simulation for sample %s of %s",
+                                 which(i == samp), length(samp)),
+               value = which(i==samp)/length(samp), 
+               session = session, log = conn$con)
+        
+        sim[[paste(i)]] <- simulateDataset(data = data,
+                                           annotation = annot,
+                                           num_simulations = num_simulation,
+                                           expected_FC = fc,
+                                           list_diff_proteins =  diff_prots,
+                                           samples_per_group = i,
+                                           simulate_valid = as.logical(sim_valid),
+                                           valid_samples_per_group = valid_samples_per_grp,
+                                           session = session)
+    }
+    .status(detail = "Simulation Complete", value = 0.9, session = session,
+            log = conn$con)
+    return(sim)
+}
+
