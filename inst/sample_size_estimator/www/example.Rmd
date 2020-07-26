@@ -1,0 +1,23 @@
+<html>
+<div class = "row">
+<div class = "col-md-6">
+<h3>Protein Abundance File</h3>
+<p>This must be a csv file in the <b>wide format</b>. Rows are proteins, columns are 
+    Biological replicates or samples, cells are protein  abundances. The following
+    image is an example, example data file can be found <a href = "https://github.com/Vitek-Lab/MSstatsSampleSize-Shiny/blob/master/OV_SRM_train.csv " target="_blank"><b>here</b></a>
+    </p>
+<img src = ab.PNG width = "100%" height = "350">  
+
+</div>
+
+<div class = "col-md-6">
+<h3>Sample Annotation File</h3>
+<p> This must be a csv file in the <b>long format</b>. It includes columns BioReplicate
+    for sample ID and Condition for group information. BioReplicate information
+    should be the same as the column names of Preliminary data. The following
+    image is an example, example data file can be found <a href = "https://github.com/Vitek-Lab/MSstatsSampleSize-Shiny/blob/master/OV_SRM_train_annotation.csv" target="_blank"><b>here</b></a>
+    </p>
+<img src = an.PNG  height = "350">
+</div>
+</div>
+</html>

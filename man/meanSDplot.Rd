@@ -4,7 +4,14 @@
 \alias{meanSDplot}
 \title{Mean-SD plot}
 \usage{
-meanSDplot(data, smoother_size = 1, xlimUp = 30, ylimUp = 3, save.pdf = F, ...)
+meanSDplot(
+  data,
+  smoother_size = 1,
+  xlimUp = 30,
+  ylimUp = 3,
+  save.pdf = FALSE,
+  ...
+)
 }
 \arguments{
 \item{data}{A list with mean protein abundance vector and standard deviation vector.

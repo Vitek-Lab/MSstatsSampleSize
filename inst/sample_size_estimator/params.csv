@@ -1,0 +1,27 @@
+id ,use_h2o,classifier,tuning
+stop_metric,T,rf,T
+stop_metric_help,T,rf,T
+nfolds,T,rf,T
+nfolds_help,T,rf,T
+f_assignment,T,rf,T
+f_assignment_help,T,rf,T
+iters,T,svmLinear,T
+iters_help,T,svmLinear,T
+link,T,logreg,T
+link_help,T,logreg,T
+family,T,logreg,T
+family_help,T,logreg,T
+solver,T,logreg,T
+solver_help,T,logreg,T
+stop_metric,T,logreg,T
+stop_metric_help,T,logreg,T
+laplace,T,naive_bayes,T
+laplace_help,T,naive_bayes,T
+eps_sdev,T,naive_bayes,T
+eps_sdev_help,T,naive_bayes,T
+min_sdev,T,naive_bayes,T
+min_sdev_help,T,naive_bayes,T
+f_assignment,T,naive_bayes,T
+f_assignment_help,T,naive_bayes,T
+caret_rf,F,rf,T
+caret_rf_help,F,rf,T

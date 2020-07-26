@@ -4,7 +4,7 @@
 \alias{estimateVar}
 \title{Estimate the mean abundance and variance of each protein in each condition.}
 \usage{
-estimateVar(data, annotation, log2Trans = F, ...)
+estimateVar(data, annotation, log2Trans = FALSE, ...)
 }
 \arguments{
 \item{data}{Data matrix with protein abundance.

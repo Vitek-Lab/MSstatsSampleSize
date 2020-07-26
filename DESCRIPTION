@@ -6,7 +6,8 @@ Date: 2020-03-15
 Authors@R: c(
     person("Ting","Huang", , "thuang0703@gmail.com", c("aut", "cre")), 
     person("Meena","Choi", , "mnchoi67@gmail.com", c("aut")),
-    person("Olga","Vitek", , "o.vitek@northeastern.edu", role="aut")) 
+    person("Sumedh", "Sankhe", ,"sumedh.sankhe@gmail.com", c("aut")),
+    person("Olga","Vitek", , "o.vitek@northeastern.edu", role="aut"))
 Description: The packages estimates the variance in the input protein abundance data 
     and simulates data with predefined number of biological replicates based on the variance estimation. 
     It reports the mean predictive accuracy of the classifier and mean protein importance over multiple iterations of the simulation. 

@@ -541,7 +541,7 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
         geom_line(aes(y = mean_acc, group = 1), size = 0.75, color = "blue")+
         labs(x = "Simulated Sample Size Per Group", y = "Predictive Accuracy",
              #title = sprintf("Classifier %s", alg),
-             subtitle = sprintf("Optimum accuracy achieved when sample size per group is : %s",
+             subtitle = sprintf("Optimal sample size per group is : %s",
                                 optimal_ss))+
         scale_y_continuous(breaks = scales::pretty_breaks(), limit = y_lim)+
         scale_x_continuous(breaks = unique(df$sample))+
@@ -667,8 +667,7 @@ qc_boxplot <- function(data = NULL ,annot = NULL){
 #' @param k A integer value for the number of features to select
 #' @param session A session object for the shiny app
 #' @keywords internal
-ss_classify_caret <- function(n_samp, sim_data, classifier, k = 10,
-                              session = NULL, ...){
+ss_classify_caret <- function(n_samp, sim_data, classifier, k = 10, ...){
     
     dots <- list(...)
     session <- dots$session
@@ -749,7 +748,7 @@ simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
                     shiny::need(all(samp >= 1), "All samples Need to be >= 1"))
     
     
-    if(rank_proteins == "combined"){
+    if(rank_proteins == "Combined"){
         protein_quantile_cutoff <- list(Mean = mean_ip, SD = sd_ip)
         protein_select <- list(Mean = mean_equality, SD = sd_equality)
     }else if(rank_proteins == "Mean"){
@@ -778,14 +777,14 @@ simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
         sim[[paste(i)]] <- simulateDataset(data = data,
                                            annotation = annot,
                                            num_simulations = num_simulation,
-                                           protein_select = protien_select,
+                                           protein_select = protein_select,
                                            protein_quantile_cutoff = protein_quantile_cutoff, 
                                            expected_FC = fc,
                                            list_diff_proteins =  diff_prots,
                                            samples_per_group = i,
                                            simulate_validation = as.logical(sim_valid),
                                            valid_samples_per_group = valid_samples_per_grp,
-                                           session = session, ...)
+                                           session = session)
     }
     .status(detail = "Simulation Complete", value = 0.9, session = session,
             log = conn$con)
@@ -820,8 +819,8 @@ simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
         n_df <- subset(df, eval(expr))
         if(nrow(n_df) == 0){
             func <- as.list(sys.call())[[1]]
-            stop("CALL_", func, "_No Proteins selected, possibly no protiens",
-                 "exists for provided quantile values, check quantile cutoff",
+            stop("CALL_", func, "_No Proteins selected, possibly no protiens ",
+                 "exists for provided quantile values, check quantile cutoff ",
                  "values, and equalities")
         }
         return(n_df)
