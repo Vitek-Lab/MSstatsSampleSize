@@ -251,35 +251,38 @@ dashboardPage(
                  box(title = "Mean-Variance Plot", solidHeader = T,
                      status = "primary", width = 12,
                      withSpinner(plotOutput("mean_sd_plot"),
-                                 proxy.height = "200px")
-                 ),
+                                 proxy.height = "200px"),
+                     htmlOutput("adv_meansd")
                  )
+          )
         ),
-        #### Simulation details section #####
-        box(title = "Simulated Datasets", solidHeader = T, status = "primary",
-            width = 12,
-            fluidRow(
-              ##### Select individual simulation, previous and next buttons #####
-              column(4, selectInput(inputId = "simulations", label = "Simulations", 
-                                    choices = NULL)),
-              column(2, shinyjs::disabled(actionButton(inputId = "back",
-                                                       label = "Previous",
-                                                       icon = icon("arrow-left"),
-                                                       style = "margin-top: 25px;",
-                                                       width = '100px'))),
-              column(2, shinyjs::disabled(actionButton(inputId = "fwd",
-                                                       label = "Next",
-                                                       icon = icon("arrow-right"),
-                                                       style = "margin-top: 25px;",
-                                                       width = '100px'))),
-              column(2, shinyjs::disabled(downloadButton(outputId = "download_pca",
-                                                         label = "Download",
-                                                         icon = icon("download"),
+        fluidRow(
+          #### Simulation details section #####
+          box(title = "Simulated Datasets", solidHeader = T, status = "primary",
+              width = 12,
+              fluidRow(
+                ##### Select individual simulation, previous and next buttons #####
+                column(4, selectInput(inputId = "simulations", label = "Simulations", 
+                                      choices = NULL)),
+                column(2, shinyjs::disabled(actionButton(inputId = "back",
+                                                         label = "Previous",
+                                                         icon = icon("arrow-left"),
                                                          style = "margin-top: 25px;",
-                                                         width = '150px')))
-              
-            ),
-            withSpinner(plotOutput("pca_plot", height = '600px'))
+                                                         width = '100px'))),
+                column(2, shinyjs::disabled(actionButton(inputId = "fwd",
+                                                         label = "Next",
+                                                         icon = icon("arrow-right"),
+                                                         style = "margin-top: 25px;",
+                                                         width = '100px'))),
+                column(2, shinyjs::disabled(downloadButton(outputId = "download_pca",
+                                                           label = "Download",
+                                                           icon = icon("download"),
+                                                           style = "margin-top: 25px;",
+                                                           width = '150px')))
+                
+              ),
+              withSpinner(plotOutput("pca_plot", height = '600px'))
+          )
         )
       ),
       #### Analyse Simulation Tab ####

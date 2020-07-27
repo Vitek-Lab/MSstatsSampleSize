@@ -696,20 +696,6 @@ ss_classify_caret <- function(n_samp, sim_data, classifier, k = 10, ...){
 #' @title Simulate datasets to be tested out
 #' @description A wrapper function for the `simulateDataset` function from the 
 #' MSstatsSampleSize package which enables simulating datasets for running experiments
-#' @param data 
-#' @param annot
-#' @param num_simulations
-#' @param exp_fc
-#' @param list_diff_proteins
-#' @param sel_simulated_proteins
-#' @param prot_proportion
-#' @param prot_number
-#' @param samples_per_group
-#' @param sim_valid
-#' @param valid_samples_per_grp
-#' @param seed
-#' @param session
-#' @return 
 simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
                           list_diff_proteins, samples_per_group, sim_valid,
                           rank_proteins, mean_ip, mean_equality, sd_ip,
@@ -791,6 +777,7 @@ simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
     return(sim)
 }
 
+
 .protein_select<- function(df, cutoff = list("Mean" = 0.2, "SD" = 0.2),
                           equality = list("Mean" = "high", "SD" = "high"),
                           conn){
@@ -808,6 +795,11 @@ simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
 }
 
 
+#' @title Evaluate quantiles given vectors and probability
+#' @param df A data.frame, with column names for which quantiles are calculated
+#' @param vec_name A vector with the name of the column
+#' @param prob A numeric value for the probablitiy
+#' @param rnd A integer value which defines where to round the quantiles
 .quantile_eval <- function(df, vec_name, prob, eq, rnd = 4){
     eq_vals <- c(">","<=")
     names(eq_vals) <- c("high", "low")

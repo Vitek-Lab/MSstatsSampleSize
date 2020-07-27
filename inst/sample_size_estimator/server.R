@@ -240,6 +240,22 @@ function(session, input, output) {
                            condition = input$upload_params != T)
   })
   
+  observeEvent(input$rank_proteins,{
+    s_ids <- c('sd_ip', 'sd_equality')
+    m_ids <- c('mean_ip', "mean_equality")
+    if(input$rank_proteins == "Mean"){
+      lapply(s_ids, shinyjs::hide, anim = TRUE)
+      lapply(m_ids, shinyjs::show, anim = TRUE)
+    }else if(input$rank_proteins == "SD"){
+      lapply(m_ids, shinyjs::hide, anim = TRUE)
+      lapply(s_ids, shinyjs::show, anim = TRUE)
+    }else{
+      ids <- c(s_ids, m_ids)
+      lapply(ids, shinyjs::show, anim = TRUE)
+    }
+  })
+  
+  
   #### Simulate Data Button Click ####
   simulations <- eventReactive(input$simulate,{
     withProgress({
@@ -254,7 +270,6 @@ function(session, input, output) {
       if(input$set_seed){
         rv$seed <- input$seed
       }
-      
       data <- simulate_grid(data = data()$wide_data,
                             annot = data()$annot_data,
                             est_var = data()$est_var,
@@ -309,15 +324,30 @@ function(session, input, output) {
     s2 <- ifelse(input$sd_equality == "High",
                  ggplot_build(mean_sd_plt())$layout$panel_params[[1]]$y.range[2],
                  0)
+    if(input$rank_proteins == 'Mean'){
+      s1 <- s2 <- 0
+    }else if(input$rank_proteins == 'SD'){
+      m1 <- m2 <- 0
+    }
     
     output$mean_sd_plot <- renderPlot({
       mean_sd_plt()+
-        geom_hline(yintercept = s1, linetype = 'dashed', color = 'red')+
-        geom_vline(xintercept = m1, linetype = 'dashed', color = 'green')+
+        geom_hline(yintercept = s1, linetype = 'dashed', color = 'green')+
+        geom_vline(xintercept = m1, linetype = 'dashed', color = 'red')+
         annotate('rect', xmin = ifelse(m1>m2,m2,m1), xmax = ifelse(m1>m2,m1,m2),
                  ymin = ifelse(s1>s2,s2,s1), ymax = ifelse(s1>s2,s1,s2),
                  alpha = 0.1, fill = 'yellow')
     })
+    
+    # output$adv_meansd <- renderText({
+    #   expr = paste("The region highlighted in",
+    #                "<font color = \"#FFFF00\"> Yellow </font> is the region",
+    #                "from which proteins are selected",
+    #                "The <font color = \"#FF0000\"> Red </font> dashed line",
+    #                "depcits the", input$mean_ip, "% Mean Abundance quantiles",
+    #                "The <font color = \"#00FF00\"> Green </font> dashed line",
+    #                "depitcs the", input$sd_ip ,"% Standard deviation quantiles")
+    # })
     
   })
   
@@ -433,7 +463,6 @@ function(session, input, output) {
       st <- Sys.time()
       .status(sprintf("Start Time: %s", Sys.time()), log = conn$con)
       if(!rv$use_h2o){
-        browser()
         rv$classification <- ss_classify_caret(n_samp = input$n_samp_grp,
                                                sim_data = simulations(),
                                                classifier = input$classifier,
