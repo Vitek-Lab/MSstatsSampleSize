@@ -186,11 +186,10 @@ dashboardPage(
                                     id = "fc_values_help"),
               br(),
               # Input vector off different proteins
-              
-              checkboxGroupInput(inputId = "da_prots", label = "How do you want to specify Differentially
-                                 abundant proteins ?", inline = T,
-                                 choiceNames = list("Text input", "Upload csv file"),
-                                 choiceValues = list(F, T), selected = F),
+              selectInput(inputId = "da_prots",
+                          label = paste("How do you want to specify Differentially",
+                                        "abundant proteins ?"),
+                          choices = c("Text Input", "Upload csv file")),
               
               textInput(inputId = "diff_prot", 
                         label = "List of Differential Abundant Proteins",

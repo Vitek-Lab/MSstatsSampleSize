@@ -37,7 +37,6 @@ function(session, input, output) {
 
   #### Import data, action click ####
   data <- eventReactive(input$import_data, {
-    SIM_CHOICES <<-0
     rv$seed <- -1
     rv$use_h2o <- F
     rv$classification <- NULL
@@ -47,10 +46,9 @@ function(session, input, output) {
                       "fwd","back","download_pca", "run_model")
     
     lapply(disable_btns, shinyjs::disable)
-    updateSelectInput(session = session, inputId ="simulations", label = "Simulations",
-                      choices = SIM_CHOICES)
-    output$default <- renderText("")
-
+    updateSelectInput(session = session, inputId ="simulations",
+                      label = "Simulations", choices = SIM_CHOICES)
+    
     withProgress({
       data <- .catch_faults(
         expr = format_data(format = input$data_format, count = input$standard_count,
@@ -127,16 +125,15 @@ function(session, input, output) {
     
     lapply(ids, shinyjs::toggleElement, anim = T, animType = "fade",
            condition = input$exp_fc != T)
-    
+  })
+  
+  observeEvent(input$da_prots,{
     ids <- c("da_prots_file", "diff_prot", "diff_prot_help")
-    cond <- c(input$da_prots == T && input$exp_fc != T, 
-              input$da_prots == F && input$exp_fc != T)
-    
-    if(cond[1]){
+    if(input$da_prots == "Upload csv file" && input$exp_fc != T){
       shinyjs::hideElement(id = "diff_prot", anim = T, animType = "fade")
       shinyjs::hideElement(id = "diff_prot_help", anim = T, animType = "fade")
       shinyjs::showElement(id = "da_prots_file", anim = T, animType = "fade")
-    } else if(cond[2]){
+    } else if(input$da_prots == "Text Input" && input$exp_fc != T){
       shinyjs::hideElement(id = "da_prots_file", anim = T, animType = "fade")
       shinyjs::showElement(id = "diff_prot", anim = T, animType = "fade")
       shinyjs::showElement(id = "diff_prot_help", anim = T, animType = "fade")
@@ -145,35 +142,10 @@ function(session, input, output) {
     }
   })
   
-  observeEvent(input$da_prots,{
-    ids <- c("da_prots_file", "diff_prot", "diff_prot_help")
-    if(length(input$da_prots) >1 || is.null(input$da_prots)){
-      lapply(ids, shinyjs::hideElement, anim = T, animType = "fade")
-      
-      showNotification("Please select either of 'Text input' or 'Upload csv file'
-                        to specify the differentially abundant proteins.",
-                       duration = 20, type = "error", session = session, 
-                       id = "error") 
-    }
-    validate(need(length(input$da_prots) ==1, 
-                  "Please select either among the two options for DA proteins"))
-    
-    cond <- c(input$da_prots == T && input$exp_fc != T, 
-              input$da_prots == F && input$exp_fc != T)
-    
-    if(cond[1]){
-      shinyjs::hideElement(id = "diff_prot", anim = T, animType = "fade")
-      shinyjs::hideElement(id = "diff_prot_help", anim = T, animType = "fade")
-      shinyjs::showElement(id = "da_prots_file", anim = T, animType = "fade")
-    } else if(cond[2]){
-      shinyjs::hideElement(id = "da_prot_file", anim = T, animType = "fade")
-      shinyjs::showElement(id = "diff_prot", anim = T, animType = "fade")
-      shinyjs::showElement(id = "diff_prot_help", anim = T, animType = "fade")
-    } else{
-      lapply(ids, shinyjs::hideElement, anim = T, animType = "fade")
-    }
-    
-  }, ignoreNULL = F)
+  
+  da_prots_up <-reactive(
+   scan(input$da_prots_file$datapath, character(), sep = ",",
+        strip.white = TRUE))
   
   
   # Fold Change Editable table #
@@ -191,7 +163,8 @@ function(session, input, output) {
     # render editable table to ui
     output$fc_values <- DT::renderDT(fc_values, rownames = F,
                                      options = list(dom = 't',
-                                                    columnDefs = list(list(targets = c(2),
+                                                    columnDefs = list(
+                                                      list(targets = c(2),
                                                            visible = F))),
                                      selection = 'none',
                                      editable = list(target = 'cell',
@@ -233,13 +206,6 @@ function(session, input, output) {
                            condition = input$sim_val == T)
   })
   
-  observeEvent(input$upload_params, {
-    shinyjs::toggleElement(id = "param_input",
-                           condition = input$upload_params == T)
-    shinyjs::toggleElement(id = "param_box",
-                           condition = input$upload_params != T)
-  })
-  
   observeEvent(input$rank_proteins,{
     s_ids <- c('sd_ip', 'sd_equality')
     m_ids <- c('mean_ip', "mean_equality")
@@ -259,23 +225,32 @@ function(session, input, output) {
   #### Simulate Data Button Click ####
   simulations <- eventReactive(input$simulate,{
     withProgress({
+      browser()
       exp_fc <- ifelse(input$exp_fc, 'data', '')
-      if(exp_fc == ''){
+      if(exp_fc ==""){
         baseline <- data.table(Group = input$b_group,
                                `Fold Change Value` = 1,
                                orig_group = input$b_group)
         exp_fc <- rbind(baseline, fc_values)
+        if(input$da_prots != "Text Input"){
+          diff_prots <- da_prots_up()
+        }else{
+          diff_prots <- unlist(strsplit(input$diff_prot, ","))
+        }
+      }else{
+        diff_prots <- input$diff_prot
       }
       
       if(input$set_seed){
         rv$seed <- input$seed
       }
+      
       data <- simulate_grid(data = data()$wide_data,
                             annot = data()$annot_data,
                             est_var = data()$est_var,
                             num_simulation = input$n_sim,
                             exp_fc = exp_fc,
-                            list_diff_proteins = input$diff_prot,
+                            list_diff_proteins = diff_prots,
                             samples_per_group = input$n_samp_grp,
                             sim_valid = input$sim_val,
                             rank_proteins = input$rank_proteins,
@@ -528,7 +503,9 @@ function(session, input, output) {
                       choices = samp_size, 
                       selected = paste0("Sample",op$optimal_size))
     
-    op$plot
+    op$plot+
+      labs(title = sprintf("Classifier %s",
+                            names(MODELS)[which(MODELS %in% input$classifier)]))
   })
   
   output$importance_plot <- renderPlot({

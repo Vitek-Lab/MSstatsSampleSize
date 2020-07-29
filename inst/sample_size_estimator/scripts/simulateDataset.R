@@ -285,7 +285,7 @@ simulateDataset <- function(data, annotation, log2Trans = FALSE,
             baseline <- names(expected_FC)[expected_FC == 1] # baseline group
             otherlines <- names(expected_FC)[expected_FC != 1] # compared groups
             
-            if(!all(list_diff_proteins %in%  selectedPros)){
+            if(all(list_diff_proteins %in%  selectedPros)){
                 selected_diff_proteins <- intersect(list_diff_proteins, selectedPros)
                 
                 if (length(selected_diff_proteins) == 0) {

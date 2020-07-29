@@ -544,7 +544,8 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
              subtitle = sprintf("Optimal sample size per group is : %s",
                                 optimal_ss))+
         scale_y_continuous(breaks = scales::pretty_breaks(), limit = y_lim)+
-        scale_x_continuous(breaks = unique(df$sample))+
+        scale_x_continuous(breaks = df$sample,
+                           labels = paste(df$sample))+
         theme_MSstats(...)+
         theme(plot.subtitle = element_text(face = "italic", color = "red"))
     
@@ -710,11 +711,6 @@ simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
     if(exp_fc != "data"){
         .status(detail = "Extracting Fold Change Informations", value = 0.15, 
                session = session, log = conn$con)
-        .status(detail = sprintf("List of differential proteins selected: (%s)", 
-                                list_diff_proteins), session = session, 
-                log = conn$con)
-        
-        diff_prots <- unlist(strsplit(list_diff_proteins, ","))
         fc <- exp_fc$`Fold Change Value`
         names(fc) <- exp_fc$orig_group
     } else{
@@ -766,7 +762,7 @@ simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
                                            protein_select = protein_select,
                                            protein_quantile_cutoff = protein_quantile_cutoff, 
                                            expected_FC = fc,
-                                           list_diff_proteins =  diff_prots,
+                                           list_diff_proteins =  list_diff_proteins,
                                            samples_per_group = i,
                                            simulate_validation = as.logical(sim_valid),
                                            valid_samples_per_group = valid_samples_per_grp,
