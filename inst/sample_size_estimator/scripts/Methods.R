@@ -534,18 +534,15 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
 #' @import ggplot2
 #' @importFrom scales pretty_breaks
 .plot_acc <- function(df, y_lim, optimal_ss, ...){
-    g <- ggplot(data = df, aes(x = sample))+
+    g <- ggplot(data = df, aes(x = as.factor(sample)))+
         geom_boxplot(aes(y = acc, group = sample, fill = fill_col), alpha = 0.5)+
         scale_fill_identity()+
         geom_point(aes(y = mean_acc))+
         geom_line(aes(y = mean_acc, group = 1), size = 0.75, color = "blue")+
         labs(x = "Simulated Sample Size Per Group", y = "Predictive Accuracy",
-             #title = sprintf("Classifier %s", alg),
              subtitle = sprintf("Optimal sample size per group is : %s",
                                 optimal_ss))+
         scale_y_continuous(breaks = scales::pretty_breaks(), limit = y_lim)+
-        scale_x_continuous(breaks = df$sample,
-                           labels = paste(df$sample))+
         theme_MSstats(...)+
         theme(plot.subtitle = element_text(face = "italic", color = "red"))
     

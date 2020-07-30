@@ -127,7 +127,7 @@ function(session, input, output) {
            condition = input$exp_fc != T)
   })
   
-  observeEvent(input$da_prots,{
+  observe({
     ids <- c("da_prots_file", "diff_prot", "diff_prot_help")
     if(input$da_prots == "Upload csv file" && input$exp_fc != T){
       shinyjs::hideElement(id = "diff_prot", anim = T, animType = "fade")
@@ -225,7 +225,6 @@ function(session, input, output) {
   #### Simulate Data Button Click ####
   simulations <- eventReactive(input$simulate,{
     withProgress({
-      browser()
       exp_fc <- ifelse(input$exp_fc, 'data', '')
       if(exp_fc ==""){
         baseline <- data.table(Group = input$b_group,
@@ -351,18 +350,23 @@ function(session, input, output) {
       withProgress({
         p <- list()
         library(gridExtra)
-        pdf(file = file)
+        pdf(file = file, height = 11, width = 8.5)
         for(i in seq_along(SIM_CHOICES)){
           .status(sprintf("Plotting %s plot", i), 
                  value = i/length(SIM_CHOICES), session = session)
           vals <- unlist(stringr::str_extract_all(SIM_CHOICES[i],'\\d+'))
           sim <- sprintf("simulation%s",vals[1])
-          p <- append(p, list(make_pca_plots(simulations()[[vals[2]]], 
-                                             which = sim, dot_size=1,
-                                             title = SIM_CHOICES[i],
-                                             x.axis.size = 4, y.axis.size = 4,
-                                             margin = 0.2, legend.size = 7,
-                                             download = T)
+          p <- append(p, list(designSampleSizePCAplot(simulations()[[vals[2]]], 
+                                             which = sim, conn= conn,
+                                             session = session, save.pdf = F,
+                                             dot_size = 2)+
+                                theme(axis.text.x = element_text(size = 5, colour = "black"), 
+                                      axis.text.y = element_text(size = 5, colour = "black"),
+                                      axis.ticks = element_line(colour = "black"), 
+                                      axis.title.x = element_text(size = 9, vjust = -0.4), 
+                                      axis.title.y = element_text(size = 9, vjust = 0.3),
+                                      title = element_text(size = 8, vjust = 1.5),
+                                      plot.margin = unit(rep(0.5, 4), "cm"))
                               )
                       )
           
