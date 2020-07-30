@@ -1,0 +1,125 @@
+---
+title: "MSstats Sample Size Report"
+author: "MSstatsSampleSize GUI"
+output: pdf_document
+params:
+  data: NA
+  use_h2o: NA
+  alg: NA
+  sample: NA
+  annot: NA
+  count: NA
+  n_sim: NA
+  fc: NA
+  list_diff_prots: NA
+  fc_values: NA
+  proportion: NA
+  number: NA
+  valid: NA
+  valid_sample: NA
+  sim_by: NA
+  set_seed: NA
+  seed: NA
+  baseline: NA
+  
+---
+
+```{r wrap-hook, include=FALSE, eval=TRUE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+```
+
+# Result
+
+```{r echo=FALSE, warning=FALSE, fig.width= 8.5, fig.height=8.5, message=FALSE}
+p1 <- designSampleSizeClassificationPlots(data = params$data,
+                                          protein_importance_plot = F,
+                                          predictive_accuracy_plot = T,
+                                          use_h2o = params$use_h2o,
+                                          alg =  params$alg,
+                                          save.pdf = F)
+
+p2 <- designSampleSizeClassificationPlots(data = params$data, 
+                                        protein_importance_plot = T,
+                                        predictive_accuracy_plot = F,
+                                        save.pdf = F, session = "")
+
+gridExtra::grid.arrange(p1$plot, p2$plot, ncol = 1)
+```
+
+\newpage
+# Parameters used to simulate selected sample size
+```{r echo=FALSE, linewidth=60}
+cat("Input Abundance File path:", params$count)
+cat("Input Annotation File path:", params$annot)
+cat("Set Seed ?", params$set_seed)
+if(params$set_seed){
+  cat("Seed Value:", params$seed)
+}
+cat("Number of Simulations:", params$n_sim)
+cat("Expected Fold Change:", !params$fc)
+if(!params$fc){
+  cat("List of Different Proteins:", params$list_diff_prots)
+  cat("Fold Change values:", params$fc_values)
+}
+if(params$set_seed){
+  cat("Seed Value Selected:", params$seed)
+}
+
+cat("Samples per group:", gsub("Sample","",params$sample))
+cat("Simulate Validation Set:", params$valid)
+if(params$valid){
+  cat("Validations samples per group:", params$valid_sample)
+}
+cat("Classifier used to estimate sample size:", params$alg)
+
+```
+
+\newpage
+# Code to re-run experiment
+
+
+```{r eval=FALSE, include=T}
+#Need to install MsstatsSampleSize library from Bioconductor if it is not 
+#installed
+
+data <- 
+
+library(MSstatsSampleSize)
+
+sim_data <- simulateDataset(data,
+                            annotation,
+                            num_simulations = 10,
+                            expected_FC = "data",
+                            list_diff_proteins = NULL,
+                            select_simulated_proteins = "proportion",
+                            protein_proportion = 1,
+                            protein_number = 1000,
+                            samples_per_group = 50,
+                            simulate_validation = FALSE,
+                            valid_samples_per_group = 50)
+
+
+model <- designSampleSizeClassification(simulations = sim_data,
+                                        classifier = params$alg)
+
+designSampleSizeClassificationPlots(data = model)
+
+```
+
+
+\newpage
+# Session Information
+```{r echo=F}
+sessionInfo()
+```

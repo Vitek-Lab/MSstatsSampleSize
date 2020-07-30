@@ -59,6 +59,7 @@ ss_classify_h2o <- function(n_samp, sim_data, classifier, stopping_metric = "AUT
                             alpha = 0, family, solver, link, min_sdev, laplace, eps,
                             session = NULL){
   
+  config <- h2o_config()
   samp <- unlist(strsplit(n_samp,","))
   config <- h2o_config()
   h2o::h2o.init(nthreads = config$threads, max_mem_size = config$max_mem,
@@ -177,7 +178,6 @@ ss_classify_h2o <- function(n_samp, sim_data, classifier, stopping_metric = "AUT
   }
   rm(valid, valid_x, valid_y, train_x_list, train_y_list)
   gc()
-  h2o:::.h2o.garbageCollect()
   h2o::h2o.shutdown(prompt = F)
   
   return(list("models" = modelz))
@@ -245,17 +245,3 @@ ss_classify_h2o <- function(n_samp, sim_data, classifier, stopping_metric = "AUT
   
   return(output)
 }
-# res3 <- list()
-# 
-# 
-# for(i in seq_along(sim1$simulation_train_Xs)){
-# 
-#   res3[[i]] <- .classification_performance_h2o(index = i, classifier = 'naive_bayes',
-#                                          train_x_list = sim1$simulation_train_Xs,
-#                                          train_y_list = sim1$simulation_train_Ys,
-#                                          valid_x = sim1$valid_X, valid_y = sim1$valid_Y,
-#                                          top_K = 10)
-# 
-# }
-# 
-# 

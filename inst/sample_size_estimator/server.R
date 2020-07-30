@@ -448,7 +448,7 @@ function(session, input, output) {
                                                k = 10, session = session,
                                                conn = conn)
       }else{
-        stop("FUCK OFF!")
+        stop("No h2o for you yet! Go Fish!")
       }
       
     et <- Sys.time()
