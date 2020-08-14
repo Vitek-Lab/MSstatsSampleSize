@@ -21,7 +21,6 @@ req_files <- list.files(src_dir, full.names = T)
 for (i in req_files) {
   tryCatch({
     source(i)
-    message(sprintf("Sourced file : %s", i))
   }, error = function(e){
     print(conditionMessage(e))
     print(sprintf("Error in sourcing : %s", i))
@@ -29,7 +28,7 @@ for (i in req_files) {
   
 }
 conn <<- .logGeneration()
-message("\n Log File saved at", conn$file)
+message("Log File saved at ", conn$file)
 
 #### GLOBAL VARS ####
 FORMATS_LIST <- list("Protein-level quantification" = "standard", 
@@ -102,20 +101,31 @@ tuning_params <- function(...){
 
 
 
-format_data <- function(format, count = NULL, annot = NULL, session = NULL, conn){
+format_data <- function(format, count = NULL, annot = NULL, transform = NULL,
+                        session = NULL, conn){
+  
   shiny::validate(shiny::need(format %in% FORMATS, "Undefined Format"))
   if(format == "standard"){
     .status(detail = "Importing Protein Abundance file", value = 0.4,
            session = session, log = conn$con)
     #read abundance data from the file path provided
-    wide <- fread(count$datapath, keepLeadingZeros = T)
+    wide <- read.csv(count$datapath, stringsAsFactors = FALSE)
     #No column names expected for the protein columns
-    setnames(wide, "V1", "Protein")
+    rownames(wide) <- wide[,1]
+     wide[,1] <- NULL
+    
+    if(transform != "No Transform"){
+      .status(detail = sprintf("Applying transformation of %s", transform),
+              value = 0.45, session = session, log = conn$con)
+      wide <- rapply(wide, f = get(transform), classes = c("numeric", "integer"),
+                     how = "replace")
+    }
+    
     name <- count$name
     .status(detail = "Importing Annotations file", value = 0.5,
            session = session)
     #read annotations from the file path provided
-    annot <- fread(annot$datapath, keepLeadingZeros = T)
+    annot <- read.csv(annot$datapath, stringsAsFactors = FALSE)
     name <- count$name
     
   }else if(format == "examples"){
@@ -147,7 +157,6 @@ format_data <- function(format, count = NULL, annot = NULL, session = NULL, conn
   .status(detail = "Creating Box Plots", value = 0.95, session = session,
          log = conn$con)
   .status(detail = sprintf("Dataset Name: %s", name), log = conn$con)
-  
   return(list("wide_data" = wide, "annot_data" = annot,
               "n_prot" = nrow(wide), 
               "cond_sum_table" = data_summary,

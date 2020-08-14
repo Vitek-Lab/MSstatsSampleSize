@@ -78,6 +78,12 @@ dashboardPage(
                                             accept = EXTENSTIONS))
                          ),
                          fluidRow(
+                           column(width = 3,
+                                  selectInput("transform", "Base for Log Transform",
+                                              choices = c("No Transform","log","log10","log2"),
+                                              selected = "No Transform"))
+                         ),
+                         fluidRow(
                            column(width = 2,
                                   actionButton("import_data", "Import dataset", 
                                                icon = icon("file-import"),

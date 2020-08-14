@@ -328,18 +328,19 @@
     consistent_cols <- !setequal(required.annotation, colnames(annotation))
     if(consistent_cols){
         packageStartupMessage(" Failure")
-        nf <- required.annotation[!colnames(annotation) %in% required.annotation]
+        nf <- required.annotation[!required.annotation %in% colnames(annotation)]
         stop("CALL_", func,"_",nf,
              " is not provided in Annotation, please check annotation file")
     }
+    anno_cols <- colnames(data)[!colnames(data) %in% 'Protein']
 
-    ic <- setequal(annotation$BioReplicate, colnames(data)) && 
-        nrow(annotation) == ncol(data)
+    ic <- setequal(annotation$BioReplicate, anno_cols) && 
+        nrow(annotation) == length(anno_cols)
     if(!ic){
         packageStartupMessage(" Failure")
         stop("CALL_",func,"_",
              "Please check the annotation file. 'Bioreplicate' must match with",
-             "the column names of 'data'.")
+             " the column names of 'data'.")
     }
 
     
@@ -534,17 +535,15 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
 #' @import ggplot2
 #' @importFrom scales pretty_breaks
 .plot_acc <- function(df, y_lim, optimal_ss, ...){
-    g <- ggplot(data = df, aes(x = sample))+
+    g <- ggplot(data = df, aes(x = as.factor(sample)))+
         geom_boxplot(aes(y = acc, group = sample, fill = fill_col), alpha = 0.5)+
         scale_fill_identity()+
         geom_point(aes(y = mean_acc))+
         geom_line(aes(y = mean_acc, group = 1), size = 0.75, color = "blue")+
         labs(x = "Simulated Sample Size Per Group", y = "Predictive Accuracy",
-             #title = sprintf("Classifier %s", alg),
-             subtitle = sprintf("Optimum accuracy achieved when sample size per group is : %s",
+             subtitle = sprintf("Optimal sample size per group is : %s",
                                 optimal_ss))+
         scale_y_continuous(breaks = scales::pretty_breaks(), limit = y_lim)+
-        scale_x_continuous(breaks = unique(df$sample))+
         theme_MSstats(...)+
         theme(plot.subtitle = element_text(face = "italic", color = "red"))
     
@@ -593,19 +592,24 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
 #' @import data.table
 qc_boxplot <- function(data = NULL ,annot = NULL){
     #create the interactive boxplot for all the different proteins found in the data
-    data <- as.data.table(data, keep.rownames = T)
-    setnames(data, 'rn', 'proteins')
-    data <- melt(data, id.vars = 'proteins', variable.name = "BioReplicate",
+    if(!'data.table' %in% class(data)){
+        data <- as.data.table(data, keep.rownames = T)
+        setnames(data, 'rn', 'Protein')
+    }
+    
+    data <- melt(data, id.vars = 'Protein', variable.name = "BioReplicate",
                  value.name = "Abundance")
     annot <- as.data.table(annot)
     data <- merge(data, annot, by = "BioReplicate") 
+    data[, Abundance := as.numeric(format(Abundance, digits = 2))]
     
     box_plot <- plotly::plot_ly(data = data[!is.na(Abundance)],
                                 y = ~Abundance, x = ~BioReplicate, color = ~Condition,
                                 type = "box") %>%
-        plotly::layout(xaxis = list(title="Biological Replicate",showticklabels = TRUE,
+        plotly::layout(xaxis = list(title = "Biological Replicate",
+                                    showticklabels = TRUE,
                                     tickangle = -45 ), 
-                       yaxis = list(title="Protein abundance"),
+                       yaxis = list(title = "Protein abundance"),
                        legend = list(orientation = "h", #position and of the legend
                                      xanchor = "center",
                                      x = 0.5, y = 1.1)) %>%
@@ -667,8 +671,7 @@ qc_boxplot <- function(data = NULL ,annot = NULL){
 #' @param k A integer value for the number of features to select
 #' @param session A session object for the shiny app
 #' @keywords internal
-ss_classify_caret <- function(n_samp, sim_data, classifier, k = 10,
-                              session = NULL, ...){
+ss_classify_caret <- function(n_samp, sim_data, classifier, k = 10, ...){
     
     dots <- list(...)
     session <- dots$session
@@ -697,20 +700,6 @@ ss_classify_caret <- function(n_samp, sim_data, classifier, k = 10,
 #' @title Simulate datasets to be tested out
 #' @description A wrapper function for the `simulateDataset` function from the 
 #' MSstatsSampleSize package which enables simulating datasets for running experiments
-#' @param data 
-#' @param annot
-#' @param num_simulations
-#' @param exp_fc
-#' @param list_diff_proteins
-#' @param sel_simulated_proteins
-#' @param prot_proportion
-#' @param prot_number
-#' @param samples_per_group
-#' @param sim_valid
-#' @param valid_samples_per_grp
-#' @param seed
-#' @param session
-#' @return 
 simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
                           list_diff_proteins, samples_per_group, sim_valid,
                           rank_proteins, mean_ip, mean_equality, sd_ip,
@@ -725,11 +714,6 @@ simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
     if(exp_fc != "data"){
         .status(detail = "Extracting Fold Change Informations", value = 0.15, 
                session = session, log = conn$con)
-        .status(detail = sprintf("List of differential proteins selected: (%s)", 
-                                list_diff_proteins), session = session, 
-                log = conn$con)
-        
-        diff_prots <- unlist(strsplit(list_diff_proteins, ","))
         fc <- exp_fc$`Fold Change Value`
         names(fc) <- exp_fc$orig_group
     } else{
@@ -749,7 +733,7 @@ simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
                     shiny::need(all(samp >= 1), "All samples Need to be >= 1"))
     
     
-    if(rank_proteins == "combined"){
+    if(rank_proteins == "Combined"){
         protein_quantile_cutoff <- list(Mean = mean_ip, SD = sd_ip)
         protein_select <- list(Mean = mean_equality, SD = sd_equality)
     }else if(rank_proteins == "Mean"){
@@ -778,19 +762,20 @@ simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
         sim[[paste(i)]] <- simulateDataset(data = data,
                                            annotation = annot,
                                            num_simulations = num_simulation,
-                                           protein_select = protien_select,
+                                           protein_select = protein_select,
                                            protein_quantile_cutoff = protein_quantile_cutoff, 
                                            expected_FC = fc,
-                                           list_diff_proteins =  diff_prots,
+                                           list_diff_proteins =  list_diff_proteins,
                                            samples_per_group = i,
                                            simulate_validation = as.logical(sim_valid),
                                            valid_samples_per_group = valid_samples_per_grp,
-                                           session = session, ...)
+                                           session = session)
     }
     .status(detail = "Simulation Complete", value = 0.9, session = session,
             log = conn$con)
     return(sim)
 }
+
 
 .protein_select<- function(df, cutoff = list("Mean" = 0.2, "SD" = 0.2),
                           equality = list("Mean" = "high", "SD" = "high"),
@@ -809,6 +794,11 @@ simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
 }
 
 
+#' @title Evaluate quantiles given vectors and probability
+#' @param df A data.frame, with column names for which quantiles are calculated
+#' @param vec_name A vector with the name of the column
+#' @param prob A numeric value for the probablitiy
+#' @param rnd A integer value which defines where to round the quantiles
 .quantile_eval <- function(df, vec_name, prob, eq, rnd = 4){
     eq_vals <- c(">","<=")
     names(eq_vals) <- c("high", "low")
@@ -820,8 +810,8 @@ simulate_grid <- function(data = NULL, annot = NULL, num_simulation, exp_fc,
         n_df <- subset(df, eval(expr))
         if(nrow(n_df) == 0){
             func <- as.list(sys.call())[[1]]
-            stop("CALL_", func, "_No Proteins selected, possibly no protiens",
-                 "exists for provided quantile values, check quantile cutoff",
+            stop("CALL_", func, "_No Proteins selected, possibly no protiens ",
+                 "exists for provided quantile values, check quantile cutoff ",
                  "values, and equalities")
         }
         return(n_df)

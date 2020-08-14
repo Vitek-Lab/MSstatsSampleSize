@@ -328,18 +328,19 @@
     consistent_cols <- !setequal(required.annotation, colnames(annotation))
     if(consistent_cols){
         packageStartupMessage(" Failure")
-        nf <- required.annotation[!colnames(annotation) %in% required.annotation]
+        nf <- required.annotation[!required.annotation %in% colnames(annotation)]
         stop("CALL_", func,"_",nf,
              " is not provided in Annotation, please check annotation file")
     }
+    anno_cols <- colnames(data)[!colnames(data) %in% 'Protein']
 
-    ic <- setequal(annotation$BioReplicate, colnames(data)) && 
-        nrow(annotation) == ncol(data)
+    ic <- setequal(annotation$BioReplicate, anno_cols) && 
+        nrow(annotation) == length(anno_cols)
     if(!ic){
         packageStartupMessage(" Failure")
         stop("CALL_",func,"_",
              "Please check the annotation file. 'Bioreplicate' must match with",
-             "the column names of 'data'.")
+             " the column names of 'data'.")
     }
 
     
@@ -591,19 +592,24 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
 #' @import data.table
 qc_boxplot <- function(data = NULL ,annot = NULL){
     #create the interactive boxplot for all the different proteins found in the data
-    data <- as.data.table(data, keep.rownames = T)
-    setnames(data, 'rn', 'proteins')
-    data <- melt(data, id.vars = 'proteins', variable.name = "BioReplicate",
+    if(!'data.table' %in% class(data)){
+        data <- as.data.table(data, keep.rownames = T)
+        setnames(data, 'rn', 'Protein')
+    }
+    
+    data <- melt(data, id.vars = 'Protein', variable.name = "BioReplicate",
                  value.name = "Abundance")
     annot <- as.data.table(annot)
     data <- merge(data, annot, by = "BioReplicate") 
+    data[, Abundance := as.numeric(format(Abundance, digits = 2))]
     
     box_plot <- plotly::plot_ly(data = data[!is.na(Abundance)],
                                 y = ~Abundance, x = ~BioReplicate, color = ~Condition,
                                 type = "box") %>%
-        plotly::layout(xaxis = list(title="Biological Replicate",showticklabels = TRUE,
+        plotly::layout(xaxis = list(title = "Biological Replicate",
+                                    showticklabels = TRUE,
                                     tickangle = -45 ), 
-                       yaxis = list(title="Protein abundance"),
+                       yaxis = list(title = "Protein abundance"),
                        legend = list(orientation = "h", #position and of the legend
                                      xanchor = "center",
                                      x = 0.5, y = 1.1)) %>%

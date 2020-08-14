@@ -13,15 +13,18 @@ params:
   fc: NA
   list_diff_prots: NA
   fc_values: NA
-  proportion: NA
-  number: NA
   valid: NA
   valid_sample: NA
   sim_by: NA
   set_seed: NA
   seed: NA
   baseline: NA
-  
+  transform: NA
+  rank: NA
+  mean_qq: NA
+  sd_qq : NA
+  mean_eq: NA
+  sd_eq: NA
 ---
 
 ```{r wrap-hook, include=FALSE, eval=TRUE}
@@ -62,6 +65,7 @@ gridExtra::grid.arrange(p1$plot, p2$plot, ncol = 1)
 ```{r echo=FALSE, linewidth=60}
 cat("Input Abundance File path:", params$count)
 cat("Input Annotation File path:", params$annot)
+cat("Data Transform type: ", params$transform)
 cat("Set Seed ?", params$set_seed)
 if(params$set_seed){
   cat("Seed Value:", params$seed)
@@ -69,13 +73,19 @@ if(params$set_seed){
 cat("Number of Simulations:", params$n_sim)
 cat("Expected Fold Change:", !params$fc)
 if(!params$fc){
+  cat("Basline group:", params$baseline)
   cat("List of Different Proteins:", params$list_diff_prots)
   cat("Fold Change values:", params$fc_values)
 }
-if(params$set_seed){
-  cat("Seed Value Selected:", params$seed)
+cat("Rank proteins by: ", params$rank)
+if(params$rank %in% c("Mean", "Combined")){
+  cat("Quantile cutoff for Proteins Abundance: ", params$mean_qq, "%\n")
+  cat("Mean Abundance Region: ", params$mean_eq)
 }
-
+if(params$rank %in% c("Combined", "SD")){
+  cat("Quantile cutoff for Standard deviation: ", params$sd_qq, "%\n")
+  cat("Standard DeviationRegion: ", params$sd_eq)
+}
 cat("Samples per group:", gsub("Sample","",params$sample))
 cat("Simulate Validation Set:", params$valid)
 if(params$valid){
@@ -93,7 +103,6 @@ cat("Classifier used to estimate sample size:", params$alg)
 #Need to install MsstatsSampleSize library from Bioconductor if it is not 
 #installed
 
-data <- 
 
 library(MSstatsSampleSize)
 

@@ -27,6 +27,16 @@ function(session, input, output) {
   })
   ## Set maximum size of uploaded files to 300mb
   options(shiny.maxRequestSize = 300*1024^2)
+  #### Toggle control for transform
+  observeEvent(input$data_format,{
+    if(input$data_format == "examples"){
+      shinyjs::hide(id = "transform")
+    }else{
+      shinyjs::show(id = "transform")
+    }
+  })
+  
+  
   #### Toggle control for sidebar ####
   # Enable or disable fileInputs based on type of data selected
   observeEvent(input$data_format,{
@@ -40,7 +50,6 @@ function(session, input, output) {
     rv$seed <- -1
     rv$use_h2o <- F
     rv$classification <- NULL
-    
     disable_btns <- c("download_plots", "back_varimp", "fwd_varimp", 
                       "generate_report", "run_model","nav_to_exp",
                       "fwd","back","download_pca", "run_model")
@@ -53,7 +62,7 @@ function(session, input, output) {
       data <- .catch_faults(
         expr = format_data(format = input$data_format, count = input$standard_count,
                            annot = input$standard_annot, session = session,
-                           conn = conn),
+                           transform = input$transform, conn = conn),
         session = session, conn = conn
       )
       
@@ -448,7 +457,9 @@ function(session, input, output) {
                                                k = 10, session = session,
                                                conn = conn)
       }else{
-        stop("No h2o for you yet! Go Fish!")
+        shiny::showNotification("No h2o for you yet! Go Fish!", duration = NULL,
+                                type = "error")
+        validate(need(rv$use_h2o, "No h2o for you yet! Go Fish!"))
       }
       
     et <- Sys.time()
@@ -588,33 +599,39 @@ function(session, input, output) {
   output$generate_report <- downloadHandler(
     filename =  sprintf("Report_%s.pdf", format(Sys.time(), "%Y%m%d%H%M%S")),
     content = function(file){
-      tempReport <- file.path(tempdir(), "Report.Rmd")
-      file.copy("Report.Rmd", tempReport, overwrite = T)
-      
-      params <- list(data = rv$classification, use_h2o= rv$use_h2o,
-                     alg = names(MODELS)[which(MODELS %in% input$classifier)],
-                     sample = input$s_size,
-                     annot = ifelse(is.null(input$standard_annot$datapath),
-                                    "MSstatsSampleSize Package",
-                                    input$standard_annot$datapath),
-                     count = ifelse(is.null(input$standard_count$datapath),
-                                    "MSstatsSampleSize Package",
-                                    input$standard_count$datapath),
-                     n_sim = input$n_sim,
-                     fc = input$exp_fc,
-                     sim_by = input$sel_sim_prot,
-                     fc_values = input$fc_values,
-                     baseline = input$b_group,
-                     list_diff_prots = input$diff_prot,
-                     set_seed = input$set_seed,
-                     seed = input$seed,
-                     proportion = input$prot_prop,
-                     number = input$prot_num,
-                     valid = input$sim_val,
-                     valid_sample = input$n_val_samp_grp)
-      
-      rmarkdown::render(tempReport, output_file = file, params = params,
-                        envir = new.env(parent = globalenv()))
+      withProgress(message = 'Rendering, please wait!', {
+        tempReport <- file.path(tempdir(), "Report.Rmd")
+        file.copy("Report.Rmd", tempReport, overwrite = T)
+        
+        params <- list(data = rv$classification, use_h2o= rv$use_h2o,
+                       alg = names(MODELS)[which(MODELS %in% input$classifier)],
+                       sample = input$s_size,
+                       annot = ifelse(is.null(input$standard_annot$datapath),
+                                      "MSstatsSampleSize Package",
+                                      input$standard_annot$datapath),
+                       count = ifelse(is.null(input$standard_count$datapath),
+                                      "MSstatsSampleSize Package",
+                                      input$standard_count$datapath),
+                       n_sim = input$n_sim,
+                       fc = input$exp_fc,
+                       sim_by = input$sel_sim_prot,
+                       fc_values = input$fc_values,
+                       baseline = input$b_group,
+                       list_diff_prots = input$diff_prot,
+                       set_seed = input$set_seed,
+                       seed = input$seed,
+                       valid = input$sim_val,
+                       valid_sample = input$n_val_samp_grp,
+                       transform = input$transform,
+                       rank = input$rank_proteins,
+                       mean_qq = input$mean_ip,
+                       sd_qq = input$sd_ip,
+                       mean_eq = input$mean_equality,
+                       sd_eq = input$sd_equality)
+        
+        rmarkdown::render(tempReport, output_file = file, params = params,
+                          envir = new.env(parent = globalenv()))
+      })
     }
   )
-}
+  }
