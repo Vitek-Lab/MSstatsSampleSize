@@ -4,7 +4,7 @@
 \alias{ss_classify_caret}
 \title{Classsification caret}
 \usage{
-ss_classify_caret(n_samp, sim_data, classifier, k = 10, session = NULL, ...)
+ss_classify_caret(n_samp, sim_data, classifier, k = 10, ...)
 }
 \arguments{
 \item{n_samp}{A character vector consisting the of the different samples simulated}

@@ -24,12 +24,6 @@ simulate_grid(
   session = NULL
 )
 }
-\arguments{
-\item{data}{}
-}
-\value{
-
-}
 \description{
 A wrapper function for the `simulateDataset` function from the 
 MSstatsSampleSize package which enables simulating datasets for running experiments
