@@ -61,5 +61,5 @@ head(variance_estimation$prosd)
 
 }
 \author{
-Ting Huang, Meena Choi, Olga Vitek
+Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek
 }

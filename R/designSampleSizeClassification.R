@@ -1,80 +1,78 @@
-#' Estimate the mean predictive accuracy and mean protein importance over all 
+#' Estimate the mean predictive accuracy and mean protein importance over all
 #' the simulated datasets
 #' @details This function fits the classification model,
-#' in order to classify the subjects in each simulated training dataset (the 
+#' in order to classify the subjects in each simulated training dataset (the
 #' output of \code{\link{simulateDataset}}).
-#' Then the fitted model is validated on the (simulated) validation set (the 
+#' Then the fitted model is validated on the (simulated) validation set (the
 #' output of \code{\link{simulateDataset}}).
 
 #' Two performance are reported :
 #'
-#' (1) the mean predictive accuracy : The function trains classifier on each 
+#' (1) the mean predictive accuracy : The function trains classifier on each
 #' simulated training dataset and reports the predictive accuracy of the trained
 #' classifier on the validation data (output of \code{\link{simulateDataset}} function).
 #' Then these predictive accuracies are averaged over all the simulation.
 #'
-#' (2) the mean protein importance : It represents the importance of a protein 
-#' in separating different groups. It is estimated on each simulated training 
-#' dataset using function `varImp` from package caret. Please refer to the help 
-#' file of `varImp` about how each classifier calculates the protein importance. 
+#' (2) the mean protein importance : It represents the importance of a protein
+#' in separating different groups. It is estimated on each simulated training
+#' dataset using function `varImp` from package caret. Please refer to the help
+#' file of `varImp` about how each classifier calculates the protein importance.
 #' Then these importance values for each protein are averaged over all the simulation.
 #'
-#' The list of classification models trained on each simulated dataset, 
+#' The list of classification models trained on each simulated dataset,
 #' the predictive accuracy on the validation set predicted by the corresponding
 #' classification model and the importance value for all the proteins estimated
 #' by the corresponding classification model are also reported.
 #'
-#' @param simulations A list of simulated datasets It should be the name of the 
+
+#' @param simulations A list of simulated datasets It should be the name of the
 #' output of \code{\link{simulateDataset}} function.
-#' @param classifier A string specifying which classfier to use. This function 
-#' uses function `train' from package caret. The options are 1) rf (random 
-#' forest calssifier, default option). 2) nnet (neural network), 3) svmLinear 
-#' (support vector machines with linear kernel), 4) logreg (logistic regression), 
+#' @param classifier A string specifying which classfier to use. This function
+#' uses function `train' from package caret. The options are 1) rf (random
+#' forest calssifier, default option). 2) nnet (neural network), 3) svmLinear
+#' (support vector machines with linear kernel), 4) logreg (logistic regression),
 #' and 5) naive_bayes (naive_bayes).
-#' @param top_K the number of proteins selected as important features 
-#' (biomarker candidates). All the proteins are ranked in descending order based 
-#' on its importance to separate different groups and the `top_K` proteins are 
+#' @param top_K the number of proteins selected as important features
+#' (biomarker candidates). All the proteins are ranked in descending order based
+#' on its importance to separate different groups and the `top_K` proteins are
 #' selected as important features.
 #' @param parallel Default is FALSE. If TRUE, parallel computation is performed.
 #'
-#' @return \emph{num_proteins} is the number of simulated proteins. It should be 
+#' @return \emph{num_proteins} is the number of simulated proteins. It should be
 #' the same as one of the output from \emph{simulateDataset}, called \emph{num_proteins}
-#' @return \emph{num_samples} is a vector with the number of simulated samples 
-#' in each condition. It should be the same as one of the output from 
+#' @return \emph{num_samples} is a vector with the number of simulated samples
+#' in each condition. It should be the same as one of the output from
 #' \emph{simulateDataset}, called \emph{num_samples}
-#' @return \emph{mean_predictive_accuracy} is the mean predictive accuracy over 
+#' @return \emph{mean_predictive_accuracy} is the mean predictive accuracy over
 #' all the simulated datasets, which have same `num_proteins' and `num_samples'.
-#' @return \emph{mean_feature_importance} is the mean protein importance vector 
+#' @return \emph{mean_feature_importance} is the mean protein importance vector
 #' over all the simulated datasets, the length of which is `num_proteins'.
-#' @return \emph{predictive_accuracy} is a vector of predictive accuracy on each 
+#' @return \emph{predictive_accuracy} is a vector of predictive accuracy on each
 #' simulated dataset.
-#' @return \emph{feature_importance} is a matrix of feature importance, where 
+#' @return \emph{feature_importance} is a matrix of feature importance, where
 #' rows are proteins and columns are simulated datasets.
-#' @return \emph{results} is the list of classification models trained on each 
-#' simulated dataset and
-#' the predictive accuracy on the validation set predicted by the corresponding 
-#' classification model.
-#' @author Ting Huang, Meena Choi, Olga Vitek
+#' @author Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek
 #'
 #' @examples data(OV_SRM_train)
 #' data(OV_SRM_train_annotation)
 #'
 #' # num_simulations = 10: simulate 10 times
+#' # protein_rank = "mean", protein_select = "high", and protein_quantile_cutoff = 0.0:
+#' # select the proteins with high mean abundance based on the protein_quantile_cutoff
 #' # expected_FC = "data": fold change estimated from OV_SRM_train
-#' # select_simulated_proteins = "proportion":
-#' # select the simulated proteins based on the proportion of total proteins
-#' # simulate_valid = FALSE: use input OV_SRM_train as validation set
+#' # simulate_validation = FALSE: use input OV_SRM_train as validation set
 #' # valid_samples_per_group = 50: 50 samples per condition
 #' simulated_datasets <- simulateDataset(data = OV_SRM_train,
 #'                                       annotation = OV_SRM_train_annotation,
+#'                                       log2Trans = FALSE,
 #'                                       num_simulations = 10,
+#'                                       samples_per_group = 50,
+#'                                       protein_rank = "mean",
+#'                                       protein_select = "high",
+#'                                       protein_quantile_cutoff = 0.0,
 #'                                       expected_FC = "data",
 #'                                       list_diff_proteins =  NULL,
-#'                                       select_simulated_proteins = "proportion",
-#'                                       protein_proportion = 1.0,
-#'                                       protein_number = 1000,
-#'                                       samples_per_group = 50,
-#'                                       simulate_valid = FALSE,
+#'                                       simulate_validation = FALSE,
 #'                                       valid_samples_per_group = 50)
 #'
 #' # run classification on simulated datasets without parallel computation
@@ -104,7 +102,6 @@ designSampleSizeClassification <- function(simulations,
                                            classifier = "rf",
                                            top_K = 10,
                                            parallel = FALSE, ...) {
-    
     ###############################################################################
     ## log file
     ## save process output in each step
@@ -125,7 +122,6 @@ designSampleSizeClassification <- function(simulations,
                  "output of simulateDataset function as input in ",
                  "designSampleSizeClassification.")
         }
-        
         ## 2. input for classifier option
         if(!any(classifier == c('rf', 'nnet', 'svmLinear', 'logreg', 'naive_bayes'))) {
             stop("CALL_",func,"`classifier` should be one of 'rf', 'nnet',",
@@ -175,6 +171,7 @@ designSampleSizeClassification <- function(simulations,
             
             
         } else { 
+
             ## fit the classifier for each simulation dataset
             results <- lapply(seq_len(iter),
                               .classification_performance,

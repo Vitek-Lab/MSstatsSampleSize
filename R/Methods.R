@@ -70,6 +70,7 @@
 .classification_performance <- function(index, classifier, train_x_list,
                                        train_y_list, valid_x, valid_y, top_K,
                                        tunegrid){
+
     # record the train x and y
     x <- as.data.frame(train_x_list[[index]])
     y <- as.factor(train_y_list[[index]])
@@ -154,6 +155,7 @@
 
 }
 
+#' @keywords internal
 
 .tuning_params <- function(classifier, mtry = 2, size = 5, decay = 0.1, C = 1,
                            laplace = 0, usekernel = F, adjust = 1, ...){
@@ -163,18 +165,18 @@
     for (name in names(dots) ) {
         assign(name, dots[[name]])
     }
-    
+
     if(!classifier %in% req_classifier){
         stop("CALL_",func,"_Incorrect classifier, should be one of (",
              paste(req_classifier, collapse = ", "),")")
     }
-    
-    switch(classifier, 
+  
+    switch(classifier,
            "rf" = {tunegrid=data.frame(mtry=mtry)},
            "nnet"={tunegrid=data.frame(size=size, decay=decay)},
            "svmLinear"={tunegrid=data.frame(C=C)},
-           "naive_bayes"={tunegrid=data.frame(laplace=laplace, 
-                                              usekernel=usekernel, 
+           "naive_bayes"={tunegrid=data.frame(laplace=laplace,
+                                              usekernel=usekernel,
                                               adjust=adjust)})
     return(tunegrid)
 }
@@ -215,8 +217,7 @@
     sink(type="message")
     if(log_type == 'ERROR'){
         message(Sys.time()," : ",log_type,"_",log,"...")
-    }
-    
+    }    
 }
 
 
@@ -500,8 +501,7 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
 #' @return \emph{y_lim} A vector of limits for a ggplot2 object
 #' @keywords internal
 #' @import data.table
-.identify_optimal <- function(df, cutoff, use_h2o = F){
-    
+.identify_optimal <- function(df, cutoff, use_h2o = F){    
     if(!is.logical(use_h2o)){
         stop("'use_h2o' needs to be logical")
     }
@@ -513,7 +513,6 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
     if(use_h2o){
         setorder(opt_df, sample)
     }
-    
     opt_df[, sample := as.numeric(as.character(sample))]
     opt_df[, lg := (mean_acc - shift(mean_acc))/(sample - shift(sample))]
     opt_df[, optimal := ifelse(lg >= cutoff, T, F)]
@@ -528,7 +527,6 @@ theme_MSstats <- function(x.axis.size = 10, y.axis.size = 10,
     
     return(list('df' = df, 'opt' = opt_val, 'y_lim' = y_lim))
 }
-
 
 #' Plot Accuracy 
 #' @keywords internal

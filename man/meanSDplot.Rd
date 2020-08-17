@@ -33,7 +33,7 @@ vs standard deviation (Y-axis).
 }
 \description{
 Draw the plot for the mean protein abundance vs standard deviation
-(square root of variance). The `lowess` function is used to fit the LOWESS 
+(square root of variance). The `lowess` function is used to fit the LOWESS
 smoother between mean protein abundance and standard deviation.
 }
 \examples{
@@ -47,5 +47,5 @@ meanSDplot(variance_estimation)
 
 }
 \author{
-Ting Huang, Meena Choi, Olga Vitek
+Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek
 }

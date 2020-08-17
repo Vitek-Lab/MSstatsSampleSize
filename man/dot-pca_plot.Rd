@@ -14,3 +14,4 @@
 \description{
 A utility wrapper for plotting pca data as returned by the `do_prcomp()`
 }
+\keyword{internal}

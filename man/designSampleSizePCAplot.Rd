@@ -4,7 +4,7 @@
 \alias{designSampleSizePCAplot}
 \title{PCA plot for each simulation}
 \usage{
-designSampleSizePCAplot(simulations, which.PCA = "all", save.pdf = T, ...)
+designSampleSizePCAplot(simulations, which.PCA = "all", save.pdf = TRUE, ...)
 }
 \arguments{
 \item{simulations}{A list of simulated datasets. It should be the output of \code{\link{simulateDataset}} function.}
@@ -14,6 +14,10 @@ X should be index of simulation, such as "simulation1" or "simulation5".
 Default is "all", which generates all the plots.
 "allonly" generates the PCA plot for the whole input dataset.
 "simulationX" generates the PCA plot for a specific simulated dataset (given by index).}
+
+\item{save.pdf}{A logical input, determines to save the plots as a pdf or not,
+the pdf plot is saved in the current working directory, name of the created
+file is displayed on the console and logged for easier access}
 
 \item{x.axis.size}{size of x-axis labeling in PCA Plot. Default is 10.}
 
@@ -53,21 +57,22 @@ data(OV_SRM_train)
 data(OV_SRM_train_annotation)
 
 # num_simulations = 10: simulate 10 times
+# protein_rank = "mean", protein_select = "high", and protein_quantile_cutoff = 0.0:
+# select the proteins with high mean abundance based on the protein_quantile_cutoff
 # expected_FC = "data": fold change estimated from OV_SRM_train
-# select_simulated_proteins = "proportion":
-# select the simulated proteins based on the proportion of total proteins
-# simulate_valid = FALSE: use input OV_SRM_train as validation set
+# simulate_validation = FALSE: use input OV_SRM_train as validation set
 # valid_samples_per_group = 50: 50 samples per condition
 simulated_datasets <- simulateDataset(data = OV_SRM_train,
                                       annotation = OV_SRM_train_annotation,
+                                      log2Trans = FALSE,
                                       num_simulations = 10,
+                                      samples_per_group = 50,
+                                      protein_rank = "mean",
+                                      protein_select = "high",
+                                      protein_quantile_cutoff = 0.0,
                                       expected_FC = "data",
                                       list_diff_proteins =  NULL,
-                                      select_simulated_proteins = "proportion",
-                                      protein_proportion = 1.0,
-                                      protein_number = 1000,
-                                      samples_per_group = 50,
-                                      simulate_valid = FALSE,
+                                      simulate_validation = FALSE,
                                       valid_samples_per_group = 50)
 
 # output a PDF file with multiple PCA plots
@@ -75,5 +80,5 @@ designSampleSizePCAplot(simulated_datasets)
 
 }
 \author{
-Ting Huang, Meena Choi, Olga Vitek
+Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek
 }

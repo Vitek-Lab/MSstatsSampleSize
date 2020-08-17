@@ -5,7 +5,7 @@
 \alias{OV_SRM_train_annotation}
 \title{Annotation file for \code{\link{OV_SRM_train}},}
 \format{
-A data frame with 173 rows and 2 variables.
+A data frame with 173 rows and 3 variables.
 }
 \usage{
 OV_SRM_train_annotation
