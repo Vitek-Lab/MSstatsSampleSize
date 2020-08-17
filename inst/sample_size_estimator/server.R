@@ -634,4 +634,11 @@ function(session, input, output) {
       })
     }
   )
-  }
+  #### Download Log button
+  output$log_down <- downloadHandler(
+    filename = "Log_MSstatsSSE.txt",
+    content <- function(file){
+      file.copy(conn$file, file)
+    }
+  )
+}

@@ -38,7 +38,13 @@ dashboardPage(
                tabName = "explore_simulated", icon = icon("project-diagram")),
       #### Analyze Simulation Tab ####
       menuItem("3: Plan experiment", 
-               tabName = "plan_experiment", icon = icon("vial"))
+               tabName = "plan_experiment", icon = icon("vial")),
+      br(),
+      br(),
+      br(),
+      downloadButton(outputId = "log_down", label = "Download Log",
+                     icon = icon("download"), 
+                     style = "margin-top: 25px; margin-left: 25px; margin-right: 25px; color: #000000",)
     )
   ),
   ##### Body ####
