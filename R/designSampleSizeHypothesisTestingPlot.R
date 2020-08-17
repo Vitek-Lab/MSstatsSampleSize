@@ -13,28 +13,40 @@
 #' @param annotation Group information for samples in data.
 #' `Run' for MS run, `BioReplicate' for biological subject ID and `Condition' for group information are required.
 #' `Run' information should be the same with the column of `data'. Multiple `Run' may come from same `BioReplicate'.
+#' @param log2Trans Default is FALSE. If TRUE, the input `data' is log-transformed with base 2.
 #' @param desired_FC the range of a desired fold change.
 #' The first option (Default) is "data",
 #' indicating the range of the desired fold change is directly estimated from the input `data',
 #' which are the minimal fold change and the maximal fold change in the input `data'.
 #' The second option is a vector which includes
 #' the lower and upper values of the desired fold change (For example, c(1.25,1.75)).
-#' @param select_testing_proteins the standard to select the proteins for hypothesis testing and sample size calculation.
-#' The variance (and the range of desired fold change if desiredFC = "data") for sample size calculation
+#' @param protein_rank The standard to rank the proteins in the input `data'.
+#' It can be 1) "mean" of protein abundances over all the samples or
+#' 2) "sd" (standard deviation) of protein abundances over all the samples or
+#' 3) the "combined" of mean abundance and standard deviation.
+#' The proteins in the input `data' are ranked based on `protein_rank'
+#' and the user can select a subset of proteins for hypothesis testing and sample size calculation.
+#' @param protein_select select proteins with "low" or "high" mean abundance or
+#' standard deviation (variance) or their combination for hypothesis testing and sample size calculation.
+#' The variance (and the range of desired fold change if desiredFC = "data")
 #' will be estimated from the selected proteins.
-#' It can be 1) "proportion" of total number of proteins in the input data or
-#' 2) "number" to specify the number of proteins.
-#' "proportion" indicates that user should provide the value for `protein_proportion' option.
-#' "number" indicates that user should provide the value for `protein_number' option.
-#' @param protein_proportion Proportion of total number of proteins in the input data to test.
-#' For example, input data has 1,000 proteins and user selects `protein_proportion=0.1'.
-#' Proteins are ranked in decreasing order based on their mean abundance across all the samples.
-#' Then, 1,000 * 0.1 = 100 proteins will be selected from the top list to test.
-#' Default is 1.0, which meaans that all the proteins will be used.
-#' @param protein_number Number of proteins to test. For example, `protein_number=1000'.
-#' Proteins are ranked in decreasing order based on their mean abundance across all the samples
-#' and top `protein_number' proteins will be selected to test.
-#' Default is 1000.
+#' If `protein_order = "mean"' or protein_order = "sd"', `protein_select' should be "low" or "high".
+#' Default is "high", indicating high abundance or standard deviation proteins are selected.
+#' If `protein_order = "combined"', `protein_select' has two elements.
+#' The first element corrresponds to the mean abundance.
+#' The second element corrresponds to the standard deviation (variance).
+#' Default is c("high", "low") (select proteins with high abundance and low variance).
+#' @param protein_quantile_cutoff Quantile cutoff(s) for selecting protiens
+#' for hypothesis testing and sample size calculation.
+#' For example, when `protein_rank="mean"', and
+#' `protein_select="high"', `protein_quantile_cutoff=0.1'
+#' Proteins are ranked based on their mean abundance across all the samples.
+#' Then, the top 10% highest abundant proteins are selected.
+#' Default is 0.0, which means that all the proteins are used.
+#' If `protein_rank = "combined"', `protein_quantile_cutoff'` has two cutoffs.
+#' The first element corrresponds to the cutoff for mean abundance.
+#' The second element corrresponds to the cutoff for the standard deviation (variance).
+#' Default is c(0.0, 1.0), which means that all the proteins will be used.
 #' @param FDR a pre-specified false discovery ratio (FDR) to control the overall false positive.
 #' Default is 0.05
 #' @param power a pre-specified statistical power which defined as the probability of detecting a
@@ -63,10 +75,11 @@
 #' # sample size plot for hypothesis testing
 #' HT_res <- designSampleSizeHypothesisTestingPlot(data = OV_SRM_train,
 #'                                                 annotation= OV_SRM_train_annotation,
+#'                                                 log2Trans = FALSE,
 #'                                                 desired_FC = "data",
-#'                                                 select_testing_proteins = "proportion",
-#'                                                 protein_proportion = 1.0,
-#'                                                 protein_number = 1000,
+#'                                                 protein_rank = "mean",
+#'                                                 protein_select = "high",
+#'                                                 protein_quantile_cutoff = 0.0,
 #'                                                 FDR=0.05,
 #'                                                 power=0.9)
 #'
@@ -75,10 +88,11 @@
 #'
 designSampleSizeHypothesisTestingPlot <- function(data,
                                               annotation,
+                                              log2Trans = FALSE,
                                               desired_FC = "data",
-                                              select_testing_proteins = "proportion",
-                                              protein_proportion = 1.0,
-                                              protein_number = 1000,
+                                              protein_rank = "mean",
+                                              protein_select = "high",
+                                              protein_quantile_cutoff = 0.0,
                                               FDR=0.05,
                                               power=0.9,
                                               height = 5,
@@ -87,7 +101,9 @@ designSampleSizeHypothesisTestingPlot <- function(data,
 
 
     ## Estimate the mean abundance and variance of each protein in each phenotype group
-    parameters <- estimateVar(data, annotation)
+    parameters <- estimateVar(data = data,
+                              annotation = annotation,
+                              log2Trans = log2Trans)
 
     ###############################################################################
     ## log file
@@ -124,62 +140,66 @@ designSampleSizeHypothesisTestingPlot <- function(data,
         write.table(processout, file=finalfile, row.names=FALSE)
     }
 
-    ## 2.2 select_testing_proteins
-    if ( !is.element("proportion", select_testing_proteins) & !is.element("number", select_testing_proteins) ) {
-        processout <- rbind(processout, c("ERROR : select_testing_proteins should be either `proportion` or `number`. Please check it."))
+    ## 2.2 protein_rank
+    if ( !protein_rank %in% c("mean", "sd", "combined") | length(protein_rank) > 1) {
+        processout <- rbind(processout, c("ERROR : protein_rank should be `mean` or `sd` or `combined`. Please check it."))
         write.table(processout, file=finalfile, row.names=FALSE)
 
-        stop("ERROR : select_testing_proteins should be either `proportion` or `number`. Please check it. \n")
+        stop("protein_rank should be `mean` or `sd` or `combined`. Please check it. \n")
     }
 
-    processout <- rbind(processout, c(paste0("select_testing_proteins = ", select_testing_proteins)))
+    processout <- rbind(processout, c(paste0("protein_rank = ", protein_rank)))
     write.table(processout, file=finalfile, row.names=FALSE)
 
-
-    ## 2.3 protein_proportion
-    if(is.element("proportion", select_testing_proteins)){
-        if (is.null(protein_proportion) ) {
-            processout <- rbind(processout, c("ERROR : protein_proportion is required for select_testing_proteins=`proportion`. Please provide the value for protein_proportion."))
+    ## 2.3 protein_select
+    if(protein_rank == "combined"){
+        if(length(protein_select) != 2 | !all(protein_select %in% c("high", "low"))){
+            processout <- rbind(processout, c("ERROR : When protein_rank = `combined`, protein_select should have two values,
+                 each of which should be either `low` or `high`. Please check it. "))
             write.table(processout, file=finalfile, row.names=FALSE)
 
-            stop("ERROR : protein_proportion is required for select_testing_proteins=`proportion`. Please provide the value for protein_proportion. \n")
-
-        } else if ( protein_proportion < 0 | protein_proportion > 1 ) {
-            processout <- rbind(processout, c("ERROR : protein_proportion should be between 0 and 1. Please check the value for protein_proportion."))
-            write.table(processout, file=finalfile, row.names=FALSE)
-
-            stop("ERROR : protein_proportion should be between 0 and 1. Please check the value for protein_proportion. \n")
+            stop("When protein_rank = `combined`, protein_select should have two values, each of which should be either `low` or `high`.
+                 Please check it. \n")
         }
-
-        processout <- rbind(processout, c(paste0("protein_proportion = ", protein_proportion)))
-        write.table(processout, file=finalfile, row.names=FALSE)
-
-    }
-
-
-    ## 2.4 protein_number
-    num_total_proteins <- nrow(data)
-
-    if(is.element("number", select_testing_proteins)){
-        if (is.null(protein_number) ) {
-            processout <- rbind(processout, c("ERROR : protein_number is required for select_testing_proteins=`number`. Please provide the value for protein_number."))
-            write.table(processout, file=finalfile, row.names=FALSE)
-
-            stop("ERROR : protein_number is required for select_testing_proteins=`number`. Please provide the value for protein_number. \n")
-
-        } else if ( protein_number < 0 | protein_number > num_total_proteins ) {
+    } else{
+        if(length(protein_select) != 1 | !all(protein_select %in% c("high", "low"))){
             processout <- rbind(processout,
-                                c(paste0("ERROR : protein_number should be between 0 and the total number of protein(", num_total_proteins,
-                                         "). Please check the value for protein_number.")))
+                                c("ERROR : protein_select should be either `low` or `high`. Please check it. "))
             write.table(processout, file=finalfile, row.names=FALSE)
 
-            stop(message(paste0("ERROR : protein_number should be between 0 and the total number of protein(", num_total_proteins,
-                                "). Please check the value for protein_number. \n")))
+            stop("protein_select should be either `low` or `high`. Please check it. \n")
         }
-
-        processout <- rbind(processout, c(paste0("protein_number = ", protein_number)))
-        write.table(processout, file=finalfile, row.names=FALSE)
     }
+
+    processout <- rbind(processout, paste0(paste0("protein_select = ", protein_select), collapse=","))
+    write.table(processout, file=finalfile, row.names=FALSE)
+
+    ## 2.4 protein_quantile_cutoff
+    if(protein_rank == "combined"){
+        if(length(protein_quantile_cutoff) != 2 |
+           any(protein_quantile_cutoff < 0) |
+           any(protein_quantile_cutoff > 1)){
+            processout <- rbind(processout, c("ERROR : When protein_rank = `combined`, protein_quantile_cutoff should have two values,
+                 each of which should be between 0 and 1. Please check it. "))
+            write.table(processout, file=finalfile, row.names=FALSE)
+
+            stop("When protein_rank = `combined`, protein_quantile_cutoff should have two values, each of which should be between 0 and 1.
+                 Please check it. \n")
+        }
+    } else{
+        if(length(protein_quantile_cutoff) != 1 |
+           any(protein_quantile_cutoff < 0) |
+           any(protein_quantile_cutoff > 1)){
+            processout <- rbind(processout, c("ERROR : protein_quantile_cutoff should be between 0 and 1.
+                                              Please check it. "))
+            write.table(processout, file=finalfile, row.names=FALSE)
+
+            stop("protein_quantile_cutoff should be between 0 and 1. Please check it. \n")
+        }
+    }
+
+    processout <- rbind(processout, paste0(paste0("protein_quantile_cutoff = ", protein_quantile_cutoff), collapse=","))
+    write.table(processout, file=finalfile, row.names=FALSE)
 
 
     ## 2.5 FDR
@@ -211,23 +231,48 @@ designSampleSizeHypothesisTestingPlot <- function(data,
     models <- parameters$model
     mu <- parameters$mu
     sigma <- parameters$sigma
-    promean <- parameters$promean
     proteins <- parameters$protein
 
-    ## Generate the protein number to test
-    # 1. based on proportion
-    if (select_testing_proteins == "proportion") {
-        nproteins <- length(promean)
-        protein_num <- round(nproteins*protein_proportion)
+    ## select the proteins to simulate
+    temp <- data.frame(Protein = proteins,
+                       Mean = parameters$promean[proteins],
+                       SD = parameters$prosd[proteins])
 
-        # 2. based on number
-    } else {
-        protein_num <- protein_number
+    # 1. use both mean and standard deviation cutoff
+    if(protein_rank == "combined"){
+        mean_cutoff <- quantile(temp$Mean, probs = protein_quantile_cutoff[1], na.rm = TRUE)
+        sd_cutoff <- quantile(temp$SD, probs = protein_quantile_cutoff[2], na.rm = TRUE)
+        if(protein_select[1] == "low" & protein_select[2] == "low") { # low abundance and low variance
+            selectedPros <- temp[temp$Mean <= mean_cutoff & temp$SD <= sd_cutoff, "Protein"]
+        } else if(protein_select[1] == "low" & protein_select[2] == "high") { # low abundance and high variance
+            selectedPros <- temp[temp$Mean <= mean_cutoff & temp$SD > sd_cutoff, "Protein"]
+        } else if(protein_select[1] == "high" & protein_select[2] == "low") { # high abundance and low variance
+            selectedPros <- temp[temp$Mean > mean_cutoff & temp$SD <= sd_cutoff, "Protein"]
+        } else if(protein_select[1] == "high" & protein_select[2] == "high") { # high abundance and high variance
+            selectedPros <- temp[temp$Mean > mean_cutoff & temp$SD > sd_cutoff, "Protein"]
+        }
+
+        # 2. use mean cutoff
+    } else if(protein_rank == "mean"){
+        mean_cutoff <- quantile(temp$Mean, probs = protein_quantile_cutoff, na.rm = TRUE)
+        if(protein_select == "low") { # low protein abundance
+            selectedPros <- temp[temp$Mean <= mean_cutoff, "Protein"]
+        } else if(protein_select == "high") { # high protein abundacne
+            selectedPros <- temp[temp$Mean > mean_cutoff, "Protein"]
+        }
+
+        # 3. use standard deviation cutoff
+    } else if(protein_rank == "sd"){
+        sd_cutoff <- quantile(temp$SD, probs = protein_quantile_cutoff, na.rm = TRUE)
+        if(protein_select == "low") { # low variance
+            selectedPros <- temp[temp$SD <= sd_cutoff, "Protein"]
+        } else if(protein_select == "high") { # high variance
+            selectedPros <- temp[temp$SD > sd_cutoff, "Protein"]
+        }
+
     }
 
-    ## select proteins based on their mean abundance
-    selectedPros <- order(promean, decreasing = TRUE)[seq_len(protein_num)]
-
+    protein_num <- length(selectedPros)
     processout <- rbind(processout, c(paste0(" Number of proteins to teset: ", protein_num)))
     write.table(processout, file=finalfile, row.names=FALSE)
     message(" Number of proteins to test: ", protein_num)

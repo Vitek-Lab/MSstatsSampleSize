@@ -3,50 +3,53 @@
 #############################################
 #' Visualization for sample size calculation in classification
 #'
-#' @description To illustrate the mean classification accuracy and protein 
+#' @description To illustrate the mean classification accuracy and protein
 #' importance under different sample sizes
 #' through predictive accuracy plot and protein importance plot.
 #'
 #' @details This function visualizes for sample size calculation in classification.
-#' Mean predictive accuracy and mean protein importance under each sample size 
-#' is from the input `data', which is the output from function 
+#' Mean predictive accuracy and mean protein importance under each sample size
+#' is from the input `data', which is the output from function
 #' \code{\link{designSampleSizeClassification}}.
 #'
-#' To illustrate the mean predictive accuracy and protein importance under 
-#' different sample sizes, it generates two types of plots in pdf files as 
-#' output: (1) The predictive accuracy plot, The X-axis represents different 
+#' To illustrate the mean predictive accuracy and protein importance under
+#' different sample sizes, it generates two types of plots in pdf files as
+#' output: (1) The predictive accuracy plot, The X-axis represents different
 #' sample sizes and y-axis represents the mean predictive accuracy.
 #' The reported sample size per condition can be used to design future experiment
 #'
 #' (2) The protein importance plot includes multiple subplots.
 #' The number of subplots is equal to `list_samples_per_group'.
-#' Each subplot shows the top `num_important_proteins_show` most important 
-#' proteins under each sample size. The Y-axis of each subplot is the protein 
+#' Each subplot shows the top `num_important_proteins_show` most important
+#' proteins under each sample size. The Y-axis of each subplot is the protein
 #' name and X-axis is the mean protein importance under the sample size.
 #'
 #' @param data A list of outputs from function \code{\link{designSampleSizeClassification}}. Each element represents the results under a specific sample size.
 #' The input should include at least two simulation results with different sample sizes.
-#' @param optimal_threshold The maximal cutoff for deciding the optimal sample 
+#' @param optimal_threshold The maximal cutoff for deciding the optimal sample
 #' size. Default is 0.0001. Large cutoff can lead to smaller optimal sample size
 #' whereas small cutoff produces large optimal sample size.
-#' @param num_important_proteins_show The number of proteins to show in protein 
+#' @param num_important_proteins_show The number of proteins to show in protein
 #' importance plot.
 #' @param protein_importance_plot TRUE(default) draws protein importance plot.
 #' @param predictive_accuracy_plot TRUE(default) draws predictive accuracy plot.
-#' @param ... Arguements that can be passed to ggplot2::theme functions to alter 
+#' @param save.pdf A logical input, determines to save the plots as a pdf or not,
+#' the pdf plot is saved in the current working directory, name of the created
+#' file is displayed on the console and logged for easier access
+#' @param ... Arguements that can be passed to ggplot2::theme functions to alter
 #' the visuals
-#' @return predictive accuracy plot is the mean predictive accuracy under 
+#' @return predictive accuracy plot is the mean predictive accuracy under
 #' different sample sizes.
-#' The X-axis represents different sample sizes and y-axis represents the mean 
+#' The X-axis represents different sample sizes and y-axis represents the mean
 #' predictive accuracy.
-#' @return protein importance plot includes multiple subplots. The number of 
-#' subplots is equal to `list_samples_per_group`. Each subplot shows the top 
+#' @return protein importance plot includes multiple subplots. The number of
+#' subplots is equal to `list_samples_per_group`. Each subplot shows the top
 #' `num_important_proteins_show` most important proteins under each sample size.
 #' The Y-axis of each subplot is the protein name and X-axis is the mean protein
 #' importance under the sample size.
 #' @return a numeric value which is the estimated optimal sample size per group
 #' for the input dataset for classification problem.
-#' @author Ting Huang, Meena Choi, Olga Vitek.
+#' @author Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek.
 #' @examples
 #' data(OV_SRM_train)
 #' data(OV_SRM_train_annotation)
@@ -64,13 +67,14 @@
 #'     # run simulation for each sample size
 #'     simulated_datasets <- simulateDataset(data = OV_SRM_train,
 #'                                           annotation = OV_SRM_train_annotation,
+#'                                           log2Trans = FALSE,
 #'                                           num_simulations = 10, # simulate 10 times
+#'                                           samples_per_group = list_samples_per_group[i],
+#'                                           protein_rank = "mean",
+#'                                           protein_select = "high",
+#'                                           protein_quantile_cutoff = 0.0,
 #'                                           expected_FC = "data",
 #'                                           list_diff_proteins =  NULL,
-#'                                           select_simulated_proteins = "proportion",
-#'                                           protein_proportion = 1.0,
-#'                                           protein_number = 1000,
-#'                                           samples_per_group = list_samples_per_group[i],
 #'                                           simulate_valid = FALSE,
 #'                                           valid_samples_per_group = 50)
 #'
@@ -83,7 +87,10 @@
 #' }
 #'
 #' ## make the plots and save them to disk
-#' designSampleSizeClassificationPlots(data = multiple_sample_sizes, save.pdf = T)
+#' designSampleSizeClassificationPlots(data = multiple_sample_sizes, save.pdf = TRUE)
+#'
+#' ## make accuracy plot print in the Plots panes
+#' designSampleSizeClassificationPlots(data = multiple_sample_sizes, predictive_accuracy_plot = TRUE)
 #'
 #'## make accuracy plot print in the Plots panes
 #' designSampleSizeClassificationPlots(data = multiple_sample_sizes, =predictive_accuracy_plot = T)
@@ -99,7 +106,7 @@ designSampleSizeClassificationPlots <- function(data,
                                                 num_important_proteins_show = 10,
                                                 protein_importance_plot = TRUE,
                                                 predictive_accuracy_plot = TRUE,
-                                                save.pdf = F, ...) {
+                                                save.pdf = FALSE, ...) {
 
     ###############################################################################
     ## log file
@@ -125,7 +132,6 @@ designSampleSizeClassificationPlots <- function(data,
                            sample = unique(x$num_samples),
                            top_n = num_important_proteins_show)
             }))
-            
             acc_tbl <- do.call('rbind', lapply(data, function(x){
                 .format_df(dat = x$predictive_accuracy,
                            sample = unique(x$num_samples))

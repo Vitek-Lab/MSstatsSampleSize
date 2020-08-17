@@ -24,29 +24,33 @@
 #' An output pdf file is automatically created with the default name of `PCAPlot.pdf'.
 #' The command address can help to specify where to store the file as well as how to modify the beginning of the file name.
 #' If address=FALSE, plot will be not saved as pdf file but showed in window.
+#' @param save.pdf A logical input, determines to save the plots as a pdf or not,
+#' the pdf plot is saved in the current working directory, name of the created
+#' file is displayed on the console and logged for easier access
 #'
 #' @return PCA plot : x-axis of PCA plot is the first component and y-axis is the second component.
-#' @author Ting Huang, Meena Choi, Olga Vitek
+#' @author Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek
 #' @examples
 #' data(OV_SRM_train)
 #' data(OV_SRM_train_annotation)
 #'
 #' # num_simulations = 10: simulate 10 times
+#' # protein_rank = "mean", protein_select = "high", and protein_quantile_cutoff = 0.0:
+#' # select the proteins with high mean abundance based on the protein_quantile_cutoff
 #' # expected_FC = "data": fold change estimated from OV_SRM_train
-#' # select_simulated_proteins = "proportion":
-#' # select the simulated proteins based on the proportion of total proteins
-#' # simulate_valid = FALSE: use input OV_SRM_train as validation set
+#' # simulate_validation = FALSE: use input OV_SRM_train as validation set
 #' # valid_samples_per_group = 50: 50 samples per condition
 #' simulated_datasets <- simulateDataset(data = OV_SRM_train,
 #'                                       annotation = OV_SRM_train_annotation,
+#'                                       log2Trans = FALSE,
 #'                                       num_simulations = 10,
+#'                                       samples_per_group = 50,
+#'                                       protein_rank = "mean",
+#'                                       protein_select = "high",
+#'                                       protein_quantile_cutoff = 0.0,
 #'                                       expected_FC = "data",
 #'                                       list_diff_proteins =  NULL,
-#'                                       select_simulated_proteins = "proportion",
-#'                                       protein_proportion = 1.0,
-#'                                       protein_number = 1000,
-#'                                       samples_per_group = 50,
-#'                                       simulate_valid = FALSE,
+#'                                       simulate_validation = FALSE,
 #'                                       valid_samples_per_group = 50)
 #'
 #' # output a PDF file with multiple PCA plots
@@ -59,9 +63,9 @@
 #' @importFrom stats prcomp
 #' @export
 #'
-designSampleSizePCAplot <- function(simulations, which.PCA = "all", save.pdf = T,
+designSampleSizePCAplot <- function(simulations, which.PCA = "all", save.pdf = TRUE,
                                     ...) {
-    
+
     ###############################################################################
     ## log file
     ## save process output in each step
@@ -88,7 +92,6 @@ designSampleSizePCAplot <- function(simulations, which.PCA = "all", save.pdf = T
         }else{
             iters <- seq_len(index)
         }
-        
         for(i in iters){
             title <- ifelse(is.na(iter),
                             sprintf("Simulation: %s", i),

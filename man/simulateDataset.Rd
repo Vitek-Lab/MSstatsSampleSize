@@ -159,5 +159,5 @@ head(simulated_datasets$simulation_train_Ys[[1]]) # first simulation
 
 }
 \author{
-Ting Huang, Meena Choi, Olga Vitek.
+Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek.
 }

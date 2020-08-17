@@ -17,11 +17,14 @@ The list should include the required elements as below.
 }
 \details{
 \itemize{
+  \item data : the input data matrix with log2 protein abundance.
   \item model : the list of linear models trained for each protein.
   \item mu : the mean abundance matrix of each protein in each condition
   \item sigma : the standard deviation matrix of each protein
   in each condition
   \item promean: the mean abundance vector of each protein
+  across all the samples
+  \item promean: the standard deviation vector of each protein
   across all the samples.
   \item protein : proteins, correpsonding to the rows
   in \emph{mu} and \emph{sigma} or the element of \emph{promean}

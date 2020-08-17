@@ -8,6 +8,7 @@
 #' `Run' for MS run, `BioReplicate' for biological subject ID and `Condition' for group information are required.
 #' `Run' information should be the same with the column of `data'. Multiple `Run' may come from same `BioReplicate'.
 #' @param log2Trans Logical. If TRUE, the input `data' is log-transformed with base 2. Default is FALSE.
+#'
 #' @return \emph{data} is the input data matrix with log2 protein abundance.
 #' @return \emph{model} is the list of linear models trained for each protein.
 #' @return \emph{mu} is the mean abundance matrix of each protein in each phenotype group.
@@ -16,7 +17,7 @@
 #' @return \emph{prosd} is the standard deviation of each protein across all the samples.
 #' @return \emph{protein} is proteins, correpsonding to the rows in \emph{mu} and \emph{sigma} or the element of \emph{promean}.
 #'
-#' @author Ting Huang, Meena Choi, Olga Vitek
+#' @author Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek
 #'
 #' @examples
 #' data(OV_SRM_train)
@@ -44,7 +45,6 @@
 #' @importFrom stats lm coef anova
 #'
 estimateVar <- function(data, annotation, log2Trans = FALSE, ...) {
-    
     ###############################################################################
     ## log file
     ## save process output in each step
@@ -61,7 +61,7 @@ estimateVar <- function(data, annotation, log2Trans = FALSE, ...) {
         data_obj <- .data_checks(data = data, annotation = annotation)
         .status("Data Check Complete", log = conn$con, func = func, ...)
         data <- .log2_trans(trans = log2Trans, data = data_obj$data, conn = conn)
-        
+
         .status(sprintf("Summary : number of proteins in the input data = %s",
                         nrow(data)), log = conn$con, func = func, ...)
         .status(sprintf("Summary : number of samples in the input data = %s",
@@ -73,7 +73,7 @@ estimateVar <- function(data, annotation, log2Trans = FALSE, ...) {
         groups <- as.character(unique(data_obj$group))
         ngroup <- length(groups)
         nproteins <- nrow(data)
-        
+
         GroupVar <- matrix(rep(NA, nproteins * ngroup), ncol = ngroup)
         GroupMean <- matrix(rep(NA, nproteins * ngroup), ncol = ngroup)
         SampleMean <- NULL # mean across all the samples
@@ -94,7 +94,7 @@ estimateVar <- function(data, annotation, log2Trans = FALSE, ...) {
             if(!inherits(df.full, "try-error")){
                 abun <- coef(df.full)
                 if(length(abun) == ngroup){
-                    
+
                     count <- count + 1
                     # total variance in protein abundance
                     var <- anova(df.full)['Residuals', 'Mean Sq']
@@ -103,7 +103,7 @@ estimateVar <- function(data, annotation, log2Trans = FALSE, ...) {
                     names(abun) <- gsub("GROUP", "", names(abun))
                     names(abun)[1] <- setdiff(as.character(groups), names(abun))
                     abun <- abun[groups]
-                    
+
                     # save group mean, group variance
                     #Models[[rownames(data)[i]]] <- df.full
                     GroupVar[count, ] <- rep(sqrt(var), times=length(abun))
@@ -114,7 +114,7 @@ estimateVar <- function(data, annotation, log2Trans = FALSE, ...) {
                 }
             }
         }
-        
+
         # only keep the rows with results
         GroupMean <- GroupMean[1:count, ]
         GroupMean <- GroupMean[1:count, ]

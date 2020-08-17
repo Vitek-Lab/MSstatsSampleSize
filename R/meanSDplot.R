@@ -1,6 +1,6 @@
 #' Mean-SD plot
 #' @description Draw the plot for the mean protein abundance vs standard deviation
-#' (square root of variance). The `lowess` function is used to fit the LOWESS 
+#' (square root of variance). The `lowess` function is used to fit the LOWESS
 #' smoother between mean protein abundance and standard deviation.
 #'
 #' @param data A list with mean protein abundance vector and standard deviation vector.
@@ -13,7 +13,7 @@
 #' file is displayed on the console and logged for easier access
 #' @return \emph{meanSDplot} is the plot for the mean protein abundance (X-axis)
 #' vs standard deviation (Y-axis).
-#' @author Ting Huang, Meena Choi, Olga Vitek
+#' @author Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek
 #' @examples
 #' data(OV_SRM_train)
 #' data(OV_SRM_train_annotation)

@@ -24,3 +24,4 @@ theme_MSstats(
 \description{
 A utility function that standardized all the ggplot themes
 }
+\keyword{internal}

@@ -10,7 +10,7 @@ designSampleSizeClassificationPlots(
   num_important_proteins_show = 10,
   protein_importance_plot = TRUE,
   predictive_accuracy_plot = TRUE,
-  save.pdf = F,
+  save.pdf = FALSE,
   ...
 )
 }
@@ -18,28 +18,32 @@ designSampleSizeClassificationPlots(
 \item{data}{A list of outputs from function \code{\link{designSampleSizeClassification}}. Each element represents the results under a specific sample size.
 The input should include at least two simulation results with different sample sizes.}
 
-\item{optimal_threshold}{The maximal cutoff for deciding the optimal sample 
+\item{optimal_threshold}{The maximal cutoff for deciding the optimal sample
 size. Default is 0.0001. Large cutoff can lead to smaller optimal sample size
 whereas small cutoff produces large optimal sample size.}
 
-\item{num_important_proteins_show}{The number of proteins to show in protein 
+\item{num_important_proteins_show}{The number of proteins to show in protein
 importance plot.}
 
 \item{protein_importance_plot}{TRUE(default) draws protein importance plot.}
 
 \item{predictive_accuracy_plot}{TRUE(default) draws predictive accuracy plot.}
 
-\item{...}{Arguements that can be passed to ggplot2::theme functions to alter 
+\item{save.pdf}{A logical input, determines to save the plots as a pdf or not,
+the pdf plot is saved in the current working directory, name of the created
+file is displayed on the console and logged for easier access}
+
+\item{...}{Arguements that can be passed to ggplot2::theme functions to alter
 the visuals}
 }
 \value{
-predictive accuracy plot is the mean predictive accuracy under 
+predictive accuracy plot is the mean predictive accuracy under
 different sample sizes.
-The X-axis represents different sample sizes and y-axis represents the mean 
+The X-axis represents different sample sizes and y-axis represents the mean
 predictive accuracy.
 
-protein importance plot includes multiple subplots. The number of 
-subplots is equal to `list_samples_per_group`. Each subplot shows the top 
+protein importance plot includes multiple subplots. The number of
+subplots is equal to `list_samples_per_group`. Each subplot shows the top
 `num_important_proteins_show` most important proteins under each sample size.
 The Y-axis of each subplot is the protein name and X-axis is the mean protein
 importance under the sample size.
@@ -48,26 +52,26 @@ a numeric value which is the estimated optimal sample size per group
 for the input dataset for classification problem.
 }
 \description{
-To illustrate the mean classification accuracy and protein 
+To illustrate the mean classification accuracy and protein
 importance under different sample sizes
 through predictive accuracy plot and protein importance plot.
 }
 \details{
 This function visualizes for sample size calculation in classification.
-Mean predictive accuracy and mean protein importance under each sample size 
-is from the input `data', which is the output from function 
+Mean predictive accuracy and mean protein importance under each sample size
+is from the input `data', which is the output from function
 \code{\link{designSampleSizeClassification}}.
 
-To illustrate the mean predictive accuracy and protein importance under 
-different sample sizes, it generates two types of plots in pdf files as 
-output: (1) The predictive accuracy plot, The X-axis represents different 
+To illustrate the mean predictive accuracy and protein importance under
+different sample sizes, it generates two types of plots in pdf files as
+output: (1) The predictive accuracy plot, The X-axis represents different
 sample sizes and y-axis represents the mean predictive accuracy.
 The reported sample size per condition can be used to design future experiment
 
 (2) The protein importance plot includes multiple subplots.
 The number of subplots is equal to `list_samples_per_group'.
-Each subplot shows the top `num_important_proteins_show` most important 
-proteins under each sample size. The Y-axis of each subplot is the protein 
+Each subplot shows the top `num_important_proteins_show` most important
+proteins under each sample size. The Y-axis of each subplot is the protein
 name and X-axis is the mean protein importance under the sample size.
 }
 \examples{
@@ -87,13 +91,14 @@ for(i in seq_along(list_samples_per_group)){
     # run simulation for each sample size
     simulated_datasets <- simulateDataset(data = OV_SRM_train,
                                           annotation = OV_SRM_train_annotation,
+                                          log2Trans = FALSE,
                                           num_simulations = 10, # simulate 10 times
+                                          samples_per_group = list_samples_per_group[i],
+                                          protein_rank = "mean",
+                                          protein_select = "high",
+                                          protein_quantile_cutoff = 0.0,
                                           expected_FC = "data",
                                           list_diff_proteins =  NULL,
-                                          select_simulated_proteins = "proportion",
-                                          protein_proportion = 1.0,
-                                          protein_number = 1000,
-                                          samples_per_group = list_samples_per_group[i],
                                           simulate_valid = FALSE,
                                           valid_samples_per_group = 50)
 
@@ -106,11 +111,14 @@ for(i in seq_along(list_samples_per_group)){
 }
 
 ## make the plots and save them to disk
-designSampleSizeClassificationPlots(data = multiple_sample_sizes, save.pdf = T)
+designSampleSizeClassificationPlots(data = multiple_sample_sizes, save.pdf = TRUE)
+
+## make accuracy plot print in the Plots panes
+designSampleSizeClassificationPlots(data = multiple_sample_sizes, predictive_accuracy_plot = TRUE)
 
 ## make accuracy plot print in the Plots panes
 designSampleSizeClassificationPlots(data = multiple_sample_sizes, =predictive_accuracy_plot = T)
 }
 \author{
-Ting Huang, Meena Choi, Olga Vitek.
+Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek.
 }

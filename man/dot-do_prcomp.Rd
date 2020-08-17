@@ -15,6 +15,7 @@
 A named list of the outputs
 }
 \description{
-A wrapper function to the base `prcomp()` formats the results 
+A wrapper function to the base `prcomp()` formats the results
 in a required output format
 }
+\keyword{internal}

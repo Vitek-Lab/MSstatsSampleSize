@@ -75,7 +75,7 @@
 #' @return \emph{valid_X} is the validation protein abundance matrix, which is used for classification.
 #' @return \emph{valid_Y} is the condition vector of validation samples.
 #'
-#' @author Ting Huang, Meena Choi, Olga Vitek.
+#' @author Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek.
 #'
 #' @examples
 #' data(OV_SRM_train)
