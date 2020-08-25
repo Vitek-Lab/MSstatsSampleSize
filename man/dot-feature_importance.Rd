@@ -11,7 +11,7 @@
 
 \item{classifier}{The names of the classifier used to train the model on}
 
-\item{top_K}{an Integer specifying the number of features to consider for
+\item{top_K}{an Integer specifying the number of features to consider for 
 selection}
 }
 \value{

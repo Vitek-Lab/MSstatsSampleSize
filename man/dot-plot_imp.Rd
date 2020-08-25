@@ -4,7 +4,7 @@
 \alias{.plot_imp}
 \title{Plot Variable Importance}
 \usage{
-.plot_imp(df, sample, ylim, facet = F, ...)
+.plot_imp(df, samp = NA, ylim, facet = F, ...)
 }
 \description{
 Plot Variable Importance
