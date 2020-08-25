@@ -118,152 +118,136 @@
 #'
 #' @importFrom utils sessionInfo read.table write.table
 #'
-simulateDataset <- function(data, annotation,
-                            log2Trans = FALSE,
-                            num_simulations = 10,
-                            samples_per_group = 50,
-                            protein_rank = "mean",
-                            protein_select = "high",
-                            protein_quantile_cutoff = 0.0,
-                            expected_FC = "data",
-                            list_diff_proteins =  NULL,
+simulateDataset <- function(data, annotation, log2Trans = FALSE,
+                            num_simulations = 10, samples_per_group = 50,
+                            protein_select = list(Mean = "high", SD = "high"),
+                            protein_quantile_cutoff = list(Mean = 0, SD = 0),
+                            expected_FC = "data", list_diff_proteins =  NULL,
                             simulate_validation = FALSE,
-                            valid_samples_per_group = 50,
-                            ...) {
-
+                            valid_samples_per_group = 50, ...) {
+    
     #### 1. log file save process output in each step ####
     dots <- list(...)
     session <- dots$session
     func <- as.list(sys.call())[[1]]
-    if(is.null(dots$log_conn)){
-        conn = mget("LOG_FILE", envir = .GlobalEnv,
-                    ifnotfound = NA)
-        if(is.na(conn)){
-            rm(conn)
-            conn <- .logGeneration()
-        } else{
-            conn <- .logGeneration(file = conn$LOG_FILE)
-        }
-    }else{
-        conn <- dots$log_conn
-    }
-
+    conn <- .find_log(...)
+    
     ##### Simulation Process ####
     res <- .catch_faults({
-
+        
         if(is.null(dots$parameters)){
-            parameters <- estimateVar(data = data, annotation = annotation,
-                                      log2Trans = log2Trans)
+            parameters <- estimateVar(data = data, annotation = annotation, 
+                                      log2Trans = log2Trans) 
         }else{
             .status(detail = "Using provided estimated means and variance",
-                    log = conn$con, func = func, ...)
+                    log = conn$con, ...)
             parameters <- dots$parameters
         }
-
-
+        
+        
         data <- data[, annotation$Run]
         group <- as.factor(as.character(annotation$Condition))
-
+        
         ##### 2. check input for option ####
         #### 2.1 number of simulation : any lower limit? ####
         if(num_simulations < 10){
             stop("CALL_", func, "_Please use more than 10 simulations.")
         }
         .status(detail = sprintf("Number of Simulations = %s", num_simulations),
-                log = conn$con, func = func, ...)
-
-        #### 2.2 samples_per_group ####
+                log = conn$con, ...)
+        
+        #### 2.2-2.5 samples_per_group ####
         if(!is.numeric(samples_per_group)){
             stop("CALL_",func,"_sample_per_group should be numeric. Please",
                  "provide the numericvalue for samples_per_group.")
         } else if (samples_per_group%%1 != 0){ ## not integer, then round
             samples_per_group <- round(samples_per_group)
-            .status(detail = "samples_per_group should be integer.
+            .status(detail = "samples_per_group should be integer. 
                 Rounded samples_per_group will be used.", log = conn$con,
                     func = func, ...)
         }
         .status(detail = sprintf("samples_per_group = %s", samples_per_group),
-                log = conn$con, func = func, ...)
-
-        #### 2.3 protein_rank ####
-        if(!protein_rank %in% c("mean", "sd", "combined") |
-           length(protein_rank) > 1) {
-            stop("CALL_",func,"_protein_rank should be `mean` or `sd` or",
-                 "`combined`. Please check it.")
+                log = conn$con, ...)
+        
+        
+        if(class(protein_quantile_cutoff) != "list"){
+          stop("CALL_",func,"_protein_quantile_cutoff should be provided as :",
+               " list(Mean = 0, SD = 0)")  
         }
-        .status(detail = sprintf("protein_rank = %s", protein_rank),
-                log = conn$con, func = func, ...)
-
-        #### 2.4 protein_select ####
-        if(protein_rank == "combined"){
-            if(length(protein_select) != 2 | !all(protein_select %in% c("high", "low"))){
-                stop("CALL_",func,"_When protein_rank = `combined`, ",
-                     "protein_select should have two values, each of which ",
-                     "should be either `low` or `high`. Please check it.")
-            }
-        } else{
-            if(length(protein_select) != 1 | !all(protein_select %in% c("high", "low"))){
-                stop("CALL_",func,"_protein_select should be either `low` or `high`.",
-                     "Please check it.")
-            }
+        
+        sapply(protein_quantile_cutoff, function(x){
+          if(x<0 | x>1){
+              stop("Quantile cutoff values should be between 0 and 1")
+          }
+        })
+        
+        if(class(protein_select) != "list"){
+            stop("CALL_",func,"_protein_select should be provided as :",
+                 " list(Mean = 'high', SD = 'low')")
         }
-        .status(detail = sprintf("protein_select = %s", protein_select),
-                log = conn$con, func = func, ...)
-
-        #### 2.5 protein_quantile_cutoff ####
-        if(protein_rank == "combined"){
-            if(length(protein_quantile_cutoff) != 2 |
-               any(protein_quantile_cutoff < 0) |
-               any(protein_quantile_cutoff > 1)){
-                stop("CALL_",func,"_When protein_rank = `combined`, ",
-                     "protein_quantile_cutoff should",
-                     "have two values, each of which should be between 0 and 1.",
-                     "Please check it.")
+        
+        sapply(protein_select, function(x){
+            if(!x %in% c('high','low')){
+                stop("CALL_",func,"_protein_select values should be either",
+                     " 'high' or 'low'")
             }
-        } else{
-            if(length(protein_quantile_cutoff) != 1 |
-               any(protein_quantile_cutoff < 0) |
-               any(protein_quantile_cutoff > 1)){
-                stop("CALL_",func,"protein_quantile_cutoff should be between 0",
-                     "and 1. Please check it.")
-            }
+        })
+        
+        
+        if(all(c("Mean", "SD") %in% names(protein_quantile_cutoff))){
+            .status(detail = "Combined quantile cutoff's provided", log = conn$con)
+            .status(detail = sprintf("Mean quantile cutoff = %s", 
+                                    protein_quantile_cutoff[['Mean']]),
+                    log = conn$con, ...)
+            .status(detail = sprintf("SD quantile cutoff = %s",
+                                     protein_quantile_cutoff[['SD']]),
+                    log = conn$con, ...)
+        }else if(names(protein_quantile_cutoff) == "Mean"){
+            .status(detail = sprintf("Mean quantile cutoff = %s", 
+                                     protein_quantile_cutoff[['Mean']]),
+                    log = conn$con, ...)
+        }else if(names(protein_quantile_cutoff) == "SD"){
+            .status(detail = sprintf("SD quantile cutoff = %s",
+                                     protein_quantile_cutoff[['SD']]),
+                    log = conn$con, ...)
         }
-        .status(detail = sprintf("protein_quantile_cutoff = %s",
-                                 protein_quantile_cutoff),
-                log = conn$con, func = func, ...)
+        .status(detail = sprintf("protien_select = (%s)",
+                                 paste(protein_select, collapse = ", ")),
+                log = conn$con, ...)
+       
         #### 2.6 expected_FC and list_diff_proteins ####
         if ( !is.element("data", expected_FC) & !is.element(1, expected_FC) ) {
             stop("CALL_", func,"_expected_FC should be `data` or a vector including 1.",
                  "Please check it.")
         }
-
+        
         if(!is.element("data", expected_FC)){
             .status(detail = sprintf("expected_FC = %s", expected_FC),
-                    log = conn$con, func = func, ...)
+                    log = conn$con, ...)
         }
-
+        
         #### 2.7 list_diff_proteins ####
         if(is.numeric(expected_FC) & is.null(list_diff_proteins)) {
             stop("CALL_",func,"list_diff_proteins are required for predefined",
                  "expected_FC. Please provide the vector for list_diff_proteins.")
         }
-
+        
         if(!is.element("data", expected_FC)){
-            .status(detail = sprintf("list_diff_proteins = %s",
+            .status(detail = sprintf("list_diff_proteins = %s", 
                                      paste(list_diff_proteins, collapse = ",")),
-                    log = conn$con, func = func, ...)
+                    log = conn$con, ...)
         }
-
+        
         #### 2.8 simulated value ####
         if(!is.logical(simulate_validation)) {
             stop("CALL_",func,"simulate_validation should be logical.",
                  "Please provide either TRUE or FALSE for simulate_validation.")
         }
         .status(detail = sprintf("simulate_validaiton = %s", simulate_validation),
-                log = conn$con, func = func, ...)
-
+                log = conn$con, ...)
+        
         #### 2.9 valid_samples_per_group ####
-        if(simulate_validation & (is.null(valid_samples_per_group) |
+        if(simulate_validation & (is.null(valid_samples_per_group) | 
                                   !is.numeric(valid_samples_per_group))) {
             stop("CALL_",func,"valid_samples_per_group is required for",
                  "simulate_validation=TRUE. Please provide the numeric value",
@@ -271,79 +255,49 @@ simulateDataset <- function(data, annotation,
         }
         .status(detail = sprintf("valid_samples_per_group = %s",
                                  valid_samples_per_group),
-                log = conn$con, func = func, ...)
-        .status("Preparing simulation...", log = conn$con, func = func, ...)
+                log = conn$con, ...)
+        .status("Preparing simulation...", log = conn$con, ...)
         #### 3. Prepare the parameters for simulation experiment ####
         mu <- parameters$mu
         sigma <- parameters$sigma
         proteins <- parameters$protein
-
+        
         ## select the proteins to simulate
         temp <- data.frame(Protein = proteins,
                            Mean = parameters$promean[proteins],
                            SD = parameters$prosd[proteins])
-
-        #### 1. use both mean and standard deviation cutoff
-        if(protein_rank == "combined"){
-            mean_cutoff <- quantile(temp$Mean, probs = protein_quantile_cutoff[1], na.rm = TRUE)
-            sd_cutoff <- quantile(temp$SD, probs = protein_quantile_cutoff[2], na.rm = TRUE)
-            if(protein_select[1] == "low" & protein_select[2] == "low") { # low abundance and low variance
-                selectedPros <- temp[temp$Mean <= mean_cutoff & temp$SD <= sd_cutoff, "Protein"]
-            } else if(protein_select[1] == "low" & protein_select[2] == "high") { # low abundance and high variance
-                selectedPros <- temp[temp$Mean <= mean_cutoff & temp$SD > sd_cutoff, "Protein"]
-            } else if(protein_select[1] == "high" & protein_select[2] == "low") { # high abundance and low variance
-                selectedPros <- temp[temp$Mean > mean_cutoff & temp$SD <= sd_cutoff, "Protein"]
-            } else if(protein_select[1] == "high" & protein_select[2] == "high") { # high abundance and high variance
-                selectedPros <- temp[temp$Mean > mean_cutoff & temp$SD > sd_cutoff, "Protein"]
-            }
-
-            # 2. use mean cutoff
-        } else if(protein_rank == "mean"){
-            mean_cutoff <- quantile(temp$Mean, probs = protein_quantile_cutoff, na.rm = TRUE)
-            if(protein_select == "low") { # low protein abundance
-                selectedPros <- temp[temp$Mean <= mean_cutoff, "Protein"]
-            } else if(protein_select == "high") { # high protein abundacne
-                selectedPros <- temp[temp$Mean > mean_cutoff, "Protein"]
-            }
-
-            # 3. use standard deviation cutoff
-        } else if(protein_rank == "sd"){
-            sd_cutoff <- quantile(temp$SD, probs = protein_quantile_cutoff, na.rm = TRUE)
-            if(protein_select == "low") { # low variance
-                selectedPros <- temp[temp$SD <= sd_cutoff, "Protein"]
-            } else if(protein_select == "high") { # high variance
-                selectedPros <- temp[temp$SD > sd_cutoff, "Protein"]
-            }
-
-        }
-
+        
+        selectedPros <- .protein_select(temp, cutoff = protein_quantile_cutoff,
+                                        equality = protein_select, conn = conn)
+        
+        
         ## prepare the mean and variance matrix for simulation
         # 1. use the fold change estimated from input data
         if (is.element("data", expected_FC)) {
             sim_mu <- mu[selectedPros, ]
             sim_sigma <- sigma[selectedPros, ]
-
+            
             # 2. use the user-defined fold change
         } else {
             sim_mu <- mu[selectedPros, ]
             sim_sigma <- sigma[selectedPros, ]
-
+            
             baseline <- names(expected_FC)[expected_FC == 1] # baseline group
             otherlines <- names(expected_FC)[expected_FC != 1] # compared groups
-
+            
             if(!all(list_diff_proteins %in%  selectedPros)){
                 selected_diff_proteins <- intersect(list_diff_proteins, selectedPros)
-
+                
                 if (length(selected_diff_proteins) == 0) {
                     stop("None of list_diff_proteins are selected to simulate based",
                          "on protein_quantile_cutoff. Please check it.")
                 }
-
-                .status(detail= sprintf("NOTE : %s%% list_diff_proteins are selected to simulate based on protein_quantile_cutoff",
+                
+                .status(detail= sprintf("NOTE : %s%% list_diff_proteins are selected to simulate based on protein_quantile_cutoff", 
                                         round(length(selected_diff_proteins)/length(list_diff_proteins), 4)*100),
-                        log = conn$con, func = func, ...)
+                        log = conn$con, ...)
             }
-
+            
             for(i in seq_along(otherlines)){
                 # set group mean for differential proteins based on predefined fold change
                 sim_mu[rownames(sim_mu) %in% selected_diff_proteins, otherlines[i]] <-
@@ -353,16 +307,16 @@ simulateDataset <- function(data, annotation,
                     sim_mu[!rownames(sim_mu) %in% selected_diff_proteins, baseline]
             }
         }
-
+        
         ## Generate the training sample size to simulate
         ngroup <- length(unique(group)) # Number of phenotype groups
         num_samples <- rep(samples_per_group, ngroup)
         names(num_samples) <- unique(group)
         train_size <- samples_per_group * ngroup
-
+        
         .status(detail = sprintf("Size of training data to simulate: %s", train_size),
-                log = conn$con, func = func, ...)
-
+                log = conn$con, ...)
+        
         ## prepare the validation set
         # 1.  simulate samples in the validation data
         if (simulate_validation) {
@@ -371,41 +325,41 @@ simulateDataset <- function(data, annotation,
                                        sigma = sim_sigma)
             valid_X <- as.data.frame(valid$X)
             valid_Y <- as.factor(valid$Y)
-
+            
         } else{ # use input data as validation set
             ## !! impute the missing values by randomly selecting values for each protein
             valid_X <- as.data.frame(apply(data[selectedPros, ],1, function(x){
-                .randomImputation(x)
+                .randomImputation(x)  
             })) # impute missing values
             valid_Y <- as.factor(group)
         }
-
+        
         protein_num <- length(selectedPros)
         .status(detail = sprintf("Number of proteins to simulate: %s", protein_num),
-                log = conn$con, func = func, ...)
-        .status(detail = "Start to run the simulation", log = conn$con, func = func,
-                ...)
-
+                log = conn$con, ...)
+        .status(detail = "Start to run the simulation", log = conn$con, ...)
+        
         simulation_train_Xs <- list()
         simulation_train_Ys <- list()
-
+        
         for (i in seq_len(num_simulations)) { ## Number of simulations
             .status(detail = sprintf("Simulation: %s", i), log = conn$con,
                     func = func, ...)
-
+            
             ## simulate samples in the training data
             train <- .sampleSimulation(m = samples_per_group,
                                        mu = sim_mu,
                                        sigma = sim_sigma)
             X <- as.data.frame(train$X)
             Y <- as.factor(train$Y)
-
+            
             simulation_train_Xs[[paste("Simulation", i, sep="")]] <- X
             simulation_train_Ys[[paste("Simulation", i, sep="")]] <- Y
         }
-
-        .status(detail = "Simulation completed.", log = conn$con, func = func, ...)
-
+        
+        .status(detail = "Simulation completed.", log = conn$con, ...)
+        
+        #TODO create structure of a fixed class, see ?structure
         list(num_proteins = protein_num, # number of proteins
              num_samples = num_samples, # number of samples per group
              simulation_train_Xs = simulation_train_Xs,
@@ -415,7 +369,6 @@ simulateDataset <- function(data, annotation,
              valid_X = valid_X,
              valid_Y = valid_Y)
     }, conn = conn, session = session)
-
     #### Return ####
     return(res)
 }

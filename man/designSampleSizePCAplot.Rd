@@ -4,7 +4,7 @@
 \alias{designSampleSizePCAplot}
 \title{PCA plot for each simulation}
 \usage{
-designSampleSizePCAplot(simulations, which.PCA = "all", save.pdf = TRUE, ...)
+designSampleSizePCAplot(simulations, which.PCA = "all", save.pdf = FALSE, ...)
 }
 \arguments{
 \item{simulations}{A list of simulated datasets. It should be the output of \code{\link{simulateDataset}} function.}
