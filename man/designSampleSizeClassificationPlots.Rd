@@ -116,6 +116,8 @@ designSampleSizeClassificationPlots(data = multiple_sample_sizes, save.pdf = TRU
 ## make accuracy plot print in the Plots panes
 designSampleSizeClassificationPlots(data = multiple_sample_sizes, predictive_accuracy_plot = TRUE)
 
+## make accuracy plot print in the Plots panes
+designSampleSizeClassificationPlots(data = multiple_sample_sizes, =predictive_accuracy_plot = T)
 }
 \author{
 Ting Huang, Meena Choi, Sumedh Sankhe, Olga Vitek.

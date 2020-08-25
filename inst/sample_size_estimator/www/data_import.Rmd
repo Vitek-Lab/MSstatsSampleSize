@@ -1,0 +1,8 @@
+<p>
+Begin by importing your dataset. The Data Import Wizard enables you to upload
+your own protein abundance and annotation data, or use a sample dataset from 
+within the <font color = "red">MSstatsSampleSize</font> Package. Click <b>Select 
+Data type</b> and select <font color = 'red'>Example from MStatsSampleSize</font> 
+to start exploring
+</p>
+<br>

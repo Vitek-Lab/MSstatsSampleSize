@@ -11,9 +11,8 @@ simulateDataset(
   log2Trans = FALSE,
   num_simulations = 10,
   samples_per_group = 50,
-  protein_rank = "mean",
-  protein_select = "high",
-  protein_quantile_cutoff = 0,
+  protein_select = list(Mean = "high", SD = "high"),
+  protein_quantile_cutoff = list(Mean = 0, SD = 0),
   expected_FC = "data",
   list_diff_proteins = NULL,
   simulate_validation = FALSE,
@@ -35,13 +34,6 @@ Rows are proteins and columns are biological replicates (samples).}
 (Number of simulated datasets). Default is 10.}
 
 \item{samples_per_group}{Number of samples per group to simulate. Default is 50.}
-
-\item{protein_rank}{The standard to rank the proteins in the input `data'.
-It can be 1) "mean" of protein abundances over all the samples or
-2) "sd" (standard deviation) of protein abundances over all the samples or
-3) the "combined" of mean abundance and standard deviation.
-The proteins in the input `data' are ranked based on `protein_rank'
-and the user can select a subset of proteins to simulate.}
 
 \item{protein_select}{select proteins with "low" or "high" mean abundance or
 standard deviation (variance) or their combination to simulate.
@@ -81,6 +73,13 @@ otherwise, the input `data' will be used as the validation set.}
 
 \item{valid_samples_per_group}{Number of validation samples per group to simulate.
 This option works only when user selects `simulate_validation=TRUE'. Default is 50.}
+
+\item{protein_rank}{The standard to rank the proteins in the input `data'.
+It can be 1) "mean" of protein abundances over all the samples or
+2) "sd" (standard deviation) of protein abundances over all the samples or
+3) the "combined" of mean abundance and standard deviation.
+The proteins in the input `data' are ranked based on `protein_rank'
+and the user can select a subset of proteins to simulate.}
 }
 \value{
 \emph{num_proteins} is the number of simulated proteins.

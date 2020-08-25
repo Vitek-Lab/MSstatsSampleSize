@@ -24,6 +24,7 @@
 #' classification model and the importance value for all the proteins estimated
 #' by the corresponding classification model are also reported.
 #'
+
 #' @param simulations A list of simulated datasets It should be the name of the
 #' output of \code{\link{simulateDataset}} function.
 #' @param classifier A string specifying which classfier to use. This function
@@ -101,73 +102,65 @@ designSampleSizeClassification <- function(simulations,
                                            classifier = "rf",
                                            top_K = 10,
                                            parallel = FALSE, ...) {
-
     ###############################################################################
     ## log file
     ## save process output in each step
     dots <- list(...)
     session <- dots$session
+    conn <- .find_log(...)
     func <- as.list(sys.call())[[1]]
-    if(is.null(dots$log_conn)){
-        conn = mget("LOG_FILE", envir = .GlobalEnv,
-                    ifnotfound = NA)
-        if(is.na(conn)){
-            rm(conn)
-            conn <- .logGeneration()
-        } else{
-            conn <- .logGeneration(file = conn$LOG_FILE)
-        }
-    }else{
-        conn <- dots$log_conn
-    }
+    
     res <- .catch_faults({
         ###############################################################################
         ## Input and option checking
-
+        
         ## 1. input  should be the output of SimulateDataset function
-        if(!is.element('simulation_train_Xs', names(simulations)) |
-           !is.element('simulation_train_Ys', names(simulations))) {
-
+        if(!is.element('simulation_train_Xs', names(simulations)) | 
+             !is.element('simulation_train_Ys', names(simulations))) {
+            
             stop("CALL_",func,"Please use 'SimulateDataset' first. Then use ",
                  "output of simulateDataset function as input in ",
                  "designSampleSizeClassification.")
         }
-
         ## 2. input for classifier option
         if(!any(classifier == c('rf', 'nnet', 'svmLinear', 'logreg', 'naive_bayes'))) {
             stop("CALL_",func,"`classifier` should be one of 'rf', 'nnet',",
                  "'svmLinear', 'logreg', and 'naive_bayes'. Please check it.")
         }
-        .status(sprintf("classifier : %s", classifier), log = conn$con,
+        .status(sprintf("classifier : %s", classifier), log = conn$con, 
                 func = func)
-
+        
         ## 3. input for top_K option
         if(is.null(top_K)){
             stop("CALL_",func,"top_K is required. Please provide the value for top_K.")
-
+            
         } else if (top_K < 0 | top_K > simulations$num_proteins){
             stop("CALL_",func,
-                 sprintf("_top_K should be between 0 and the total number of
-                     protein (%s).  Please check the value for top_K",
+                 sprintf("_top_K should be between 0 and the total number of 
+                     protein (%s).  Please check the value for top_K", 
                          simulations$num_proteins))
         }
-        .status(sprintf("top_K = %s", top_K), log = conn$con, func = func)
-
+        .status(sprintf("top_K = %s", top_K), log = conn$con)
+        
         ###############################################################################
         ## start to train classifier
-
-        .status("Start to train classifier...", log = conn$con, func = func)
-
+        
+        .status("Start to train classifier...", log = conn$con)
+        
         ## get the validation set for prediction
         iter <- length(simulations$simulation_train_Xs) # number of simulations
         num_proteins <- simulations$num_proteins
         num_samples <- simulations$num_samples
         valid_x <- simulations$valid_X
         valid_y <- simulations$valid_Y
-        tunegrid <- .tuning_params(classifier = classifier)
+        tunegrid <- NULL
+        if(classifier != "logreg"){
+            tunegrid <- .tuning_params(classifier = classifier, ...)
+        }
+        
         ## if parallel TRUE,
         if(parallel){
-            .status("Using parallel backend", log = conn$con, func = func)
+            .status("Using parallel backend", log = conn$con)
             ## fit the classifier for each simulation dataset
             results <- bplapply(seq_len(iter), .classification_performance,
                                 classifier=classifier,
@@ -175,9 +168,10 @@ designSampleSizeClassification <- function(simulations,
                                 train_y_list = simulations$simulation_train_Ys,
                                 valid_x = valid_x, valid_y = valid_y,
                                 top_K = top_K, tunegrid = tunegrid)
+            
+            
+        } else { 
 
-
-        } else {
             ## fit the classifier for each simulation dataset
             results <- lapply(seq_len(iter),
                               .classification_performance,
@@ -186,29 +180,29 @@ designSampleSizeClassification <- function(simulations,
                               train_y_list = simulations$simulation_train_Ys,
                               valid_x = valid_x,  valid_y = valid_y,
                               top_K = top_K,  tunegrid = tunegrid)
-
+            
         }
-
+        
         ## calculate the mean predictive accuracy over all the simulations
         PA <- NULL
-
+        
         ## calculate the frequency a protein is selected as important (biomarker candidates)
         FI <- data.frame('proteins' = names(valid_x))
-
+        
         for (i in seq_along(results)) {
             # record the importance of each protein
             PA <- c(PA, results[[i]]$acc)
             imp <- results[[i]]$f_imp
             FI <- cbind(FI, with(FI, ifelse(proteins %in% imp,1,0)))
         }
-
+        
         names(FI) <- c('proteins', paste0("simulation", seq_along(results)))
         ## report the training and validating done
-        .status("Finish to train classifier and to check the performance.",
-                log = conn$con, func = func)
-
+        .status("Finish to train classifier and to check the performance.", 
+                log = conn$con)
+        
         names(PA) <- names(FI)[-1]
-
+        
         # calculate mean predictive accuracy
         meanPA <-  mean(PA)
         # calculate mean feature importance
@@ -216,10 +210,10 @@ designSampleSizeClassification <- function(simulations,
         names(meanFI) <- FI$proteins
         # sort in descending order
         meanFI <- sort(meanFI, decreasing=TRUE)
-
+        
         .status("Report the mean predictive accuracy and mean feature importance.",
-                log = conn$con, func = func)
-
+                log = conn$con)
+        
         list(num_proteins = num_proteins, # number of proteins
              num_samples = num_samples, # number of samples per group
              mean_predictive_accuracy = meanPA, # mean predictive accuracy
@@ -229,6 +223,6 @@ designSampleSizeClassification <- function(simulations,
         )
     }, conn = conn, session = session)
     class(res) <- c('list', 'ssclassification')
-
+    
     return(res)
 }
