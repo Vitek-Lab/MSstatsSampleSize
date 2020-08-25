@@ -45,25 +45,14 @@
 #' @importFrom stats lm coef anova
 #'
 estimateVar <- function(data, annotation, log2Trans = FALSE, ...) {
-
     ###############################################################################
     ## log file
     ## save process output in each step
     dots <- list(...)
     session <- dots$session
-    if(is.null(dots$log_conn)){
-        conn = mget("LOG_FILE", envir = .GlobalEnv,
-                    ifnotfound = NA)
-        if(is.na(conn)){
-            rm(conn)
-            conn <- .logGeneration()
-        } else{
-            conn <- .logGeneration(file = conn$LOG_FILE)
-        }
-    }else{
-        conn <- dots$log_conn
-    }
-
+    conn <- .find_log(...)
+    
+    
     func <- as.list(sys.call())[[1]]
     res <- .catch_faults({
         .status("Estimating Variance", log = conn$con, func = func, ...)
@@ -77,7 +66,7 @@ estimateVar <- function(data, annotation, log2Trans = FALSE, ...) {
                         nrow(data)), log = conn$con, func = func, ...)
         .status(sprintf("Summary : number of samples in the input data = %s",
                         ncol(data)), log = conn$con, func = func, ...)
-
+        
         ###############################################################################
         .status("Preparing variance analysis", log = conn$con, func = func)
         ## unique groups
@@ -94,11 +83,11 @@ estimateVar <- function(data, annotation, log2Trans = FALSE, ...) {
         count = 0
         for (i in seq_len(nrow(data))) {
             sub<- data.frame(ABUNDANCE = unname(unlist(data[i, ])),
-                             GROUP = factor(data_obj$group),
+                             GROUP = factor(data_obj$group), 
                              row.names = NULL)
-
+            
             sub <- sub[!is.na(sub$ABUNDANCE), ]
-
+            
             ## train the one-way anova model
             df.full <- suppressMessages(
                 try(lm(ABUNDANCE ~ GROUP , data = sub), TRUE))
@@ -136,15 +125,15 @@ estimateVar <- function(data, annotation, log2Trans = FALSE, ...) {
         colnames(GroupMean) <- groups
         names(SampleMean) <- Proteins
         names(SampleSD) <- Proteins
-
+        
         .status("Variance analysis completed.", log = conn$con, func = func, ...)
-
+        
         list(protein = Proteins,
              promean = SampleMean,
              prosd = SampleSD,
              mu = GroupMean,
              sigma = GroupVar)
     }, conn = conn, session = session)
-
+    
     return(res)
 }

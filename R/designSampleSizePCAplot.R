@@ -73,28 +73,17 @@ designSampleSizePCAplot <- function(simulations, which.PCA = "all", save.pdf = T
     session <- dots$session
     func <- as.list(sys.call())[[1]]
     pc_plot <- list()
-    if(is.null(dots$log_conn)){
-        conn = mget("LOG_FILE", envir = .GlobalEnv,
-                    ifnotfound = NA)
-        if(is.na(conn)){
-            rm(conn)
-            conn <- .logGeneration()
-        } else{
-            conn <- .logGeneration(file = conn$LOG_FILE)
-        }
-    }else{
-        conn <- dots$log_conn
-    }
-
+    conn <- .find_log(...)
+    
     ## parameter checking: which.PCA
     if (!(length(which.PCA) == 1 & (which.PCA %in% c("all", "data") |
                                     (startsWith(which.PCA, "simulation"))))) {
         stop("CALL_",func,"_which.PCA should be one of 'all', 'data' or ",
              "'simulation + index of simulation' (such as 'simulation1').")
     }
-
+    
     .status(sprintf("which.PCA = %s", which.PCA), log = conn$con, func = func)
-
+    
     if(grepl("simulation", which.PCA) | which.PCA == "all"){
         index <- length(simulations$simulation_train_Xs)
         iter <- as.numeric(gsub("[[:alpha:]]","",which.PCA))
@@ -103,7 +92,6 @@ designSampleSizePCAplot <- function(simulations, which.PCA = "all", save.pdf = T
         }else{
             iters <- seq_len(index)
         }
-
         for(i in iters){
             title <- ifelse(is.na(iter),
                             sprintf("Simulation: %s", i),
@@ -115,7 +103,7 @@ designSampleSizePCAplot <- function(simulations, which.PCA = "all", save.pdf = T
             .status(detail = sprintf("Plotted %s of %s", i, length(iters)),
                     log = conn$con, func = func, ...)
         }
-
+        
         if(which.PCA == 'all'){
             pr_comp <- .do_prcomp(simulations$input_X, simulations$input_Y)
             pc_plot_ip <- .pca_plot(data = pr_comp$pc.result, exp_var = pr_comp$exp.var,
@@ -130,8 +118,8 @@ designSampleSizePCAplot <- function(simulations, which.PCA = "all", save.pdf = T
         stop("Improper which arguement provided, should be either 'all', 'data' or",
              "'simulation'+index, example ='simulation1'")
     }
-
-
+    
+    
     if(save.pdf | !grepl("simulation", which.PCA)){
         if(!save.pdf){
             warning("CALL_",func,"_All PCA's requested, forcing file save")
@@ -143,7 +131,7 @@ designSampleSizePCAplot <- function(simulations, which.PCA = "all", save.pdf = T
             print(pc_plot[[i]])
         }
         dev.off()
-        .status(detail = sprintf("Plots saved at %s", file_name), log = conn$con,
+        .status(detail = sprintf("Plots saved at %s", file_name), log = conn$con, 
                 func =func)
     } else{
         return(pc_plot[[iter]])

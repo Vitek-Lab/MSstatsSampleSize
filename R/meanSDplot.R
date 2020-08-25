@@ -29,9 +29,9 @@
 #' @importFrom stats lowess sd
 #' @export
 #'
-meanSDplot <- function(data, smoother_size = 1, xlimUp = 30, ylimUp = 3,
+meanSDplot <- function(data, smoother_size = 1, xlimUp = 30, ylimUp = 3, 
                        save.pdf = FALSE, ...){
-
+    
     ..density.. <-  freq <- x <- y <- NULL
     ###############################################################################
     ## log file
@@ -39,28 +39,17 @@ meanSDplot <- function(data, smoother_size = 1, xlimUp = 30, ylimUp = 3,
     dots <- list(...)
     session <- dots$session
     func <- as.list(sys.call())[[1]]
-    if(is.null(dots$log_conn)){
-        conn = mget("LOG_FILE", envir = .GlobalEnv,
-                    ifnotfound = NA)
-        if(is.na(conn)){
-            rm(conn)
-            conn <- .logGeneration()
-        } else{
-            conn <- .logGeneration(file = conn$LOG_FILE)
-        }
-    }else{
-        conn <- dots$log_conn
-    }
-
+    conn <- .find_log(...)
+    
     ###############################################################################
-
+    
     plotdata <- data.frame(mean=data$promean, sd=data$prosd)
     plot.lowess <- lowess(cbind(plotdata$mean, plotdata$sd))
     plot.lowess <- data.frame(x = plot.lowess$x, y = plot.lowess$y)
-    .status(detail = "Lowess data calculated", log = conn$con, func =func, ...)
-
+    .status(detail = "Lowess data calculated", log = conn$con, ...)
+    
     meansdplot <-  ggplot(data = plotdata, aes(mean, sd)) +
-        stat_density2d(aes(fill = ..density..^0.25), geom = "tile",
+        stat_density2d(aes(fill = ..density..^0.25), geom = "tile", 
                        contour = FALSE, n = xlimUp*10) +
         scale_fill_continuous(low = "white", high = "#0072B2")+
         geom_point(alpha = 0.02, shape = 20)+
@@ -69,18 +58,18 @@ meanSDplot <- function(data, smoother_size = 1, xlimUp = 30, ylimUp = 3,
              y = "Standard deviation") +
         scale_y_continuous(expand = c(0,0), limits = c(0,ylimUp)) +
         scale_x_continuous(expand = c(0,0), limits = c(0,xlimUp)) +
-        theme_MSstats(leg.pos = "none", download = T)
-
+        theme_MSstats(leg.pos = "none", download = T)+
+        guides(legend = 'none')
+    
     if(save.pdf){
         file_name <- sprintf("meandSD_plot_%s.pdf", format(Sys.time(),'%H%M%s'))
         file <- file.path(getwd(), file_name)
         pdf(file, height = 5, width = 5)
         print(meansdplot)
         dev.off()
-        .status(detail = sprintf("File saved at %s", file), log = conn$con,
-                func = func, ...)
+        .status(detail = sprintf("File saved at %s", file), log = conn$con, ...)
     }
-    .status(detail = "MeanSD plot printed", log = conn$con, func = func, ...)
-
+    .status(detail = "MeanSD plot printed", log = conn$con, ...)
+    
     return(meansdplot)
 }
