@@ -38,12 +38,12 @@ number of simulations are expected to  increase the running time.
 
 The Web application follows the work-flow given below, we will walkthrough each
 process of the work-flow in this manual.
-![](D:/Github/MSstatsSampleSize/inst/sample_size_estimator/img/shiny-workflow_1.JPG)
+![](inst/sample_size_estimator/img/shiny-workflow_1.JPG)
 
 Keep an eye out for buttons highlighted in orange, these buttons indicate 
 possible next steps in a planned experiment. They will look like the ones shown 
 below.  
-![](D:/Github/MSstatsSampleSize/inst/sample_size_estimator/img/start.JPG) ![](D:/Github/MSstatsSampleSize/inst/sample_size_estimator/img/next_step.JPG)
+![](inst/sample_size_estimator/img/start.JPG) ![](inst/sample_size_estimator/img/next_step.JPG)
 
 
 ## Import Data
@@ -74,9 +74,9 @@ below.
 application is expected to be transformed by one of the several converters 
 available in the MSstats package. The data is expected to be log transformed.  
 
-<div>![](D:/Github/MSstatsSampleSize/inst/sample_size_estimator/img/data_types.JPG)</div>
+<div>![](inst/sample_size_estimator/img/data_types.JPG)</div>
 <br>
-<div>![](D:/Github/MSstatsSampleSize/inst/sample_size_estimator/img/data_up.JPG)</div>  
+<div>![](inst/sample_size_estimator/img/data_up.JPG)</div>  
 
 
 ## Simulate Datasets  
@@ -87,7 +87,7 @@ the simulation can be tuned and adjusted through this panel.
 
 <div style="width:400px; height:500px; float: right; margin-right: 10px;
 margin-top: 10px; margin-left: 10px; margin-bottom 50px">
-![](D:/Github/MSstatsSampleSize/inst/sample_size_estimator/img/sim1.JPG)
+![](inst/sample_size_estimator/img/sim1.JPG)
 </div>
 
 <br>
@@ -117,7 +117,7 @@ training that occurs in the classification phase of the application.
 
 <div style="width:400px; height:300px; float: left; margin-right: 10px;
 margin-top: 10px; margin-left: 10px; margin-bottom: 10px">
-![](D:/Github/MSstatsSampleSize/inst/sample_size_estimator/img/sim2.JPG)
+![](inst/sample_size_estimator/img/sim2.JPG)
 </div>
 <br>
 <br>
@@ -150,14 +150,14 @@ proteins have been ranked and what their quantile cutoff are.
 
 PCA analysis of the simulated datasets is carried out and visualized. These 
 plots are downloadable and can be used for further research.
-![](D:/Github/MSstatsSampleSize/inst/sample_size_estimator/img/sim9.JPG)
+![](inst/sample_size_estimator/img/sim9.JPG)
 
 
 ## Plan Experiment
 
 <div style="float: right; width:500px; height=500px; margin-right: 10px;
 margin-top: 10px; margin-left: 10px; margin-bottom 10px">
-![](D:/Github/MSstatsSampleSize/inst/sample_size_estimator/img/shiny-6.JPG)
+![](inst/sample_size_estimator/img/shiny-6.JPG)
 </div>
 <br>
 <div>
@@ -194,8 +194,8 @@ for model training amongst all the datasets.
 </div>
 <div style="float: center; margin-right: 10px;
 margin-top: 10px; margin-left: 10px; margin-bottom 10px">
-![](D:/Github/MSstatsSampleSize/inst/sample_size_estimator/img/shiny-9.JPG)
-![](D:/Github/MSstatsSampleSize/inst/sample_size_estimator/img/shiny-7.JPG)
+![](inst/sample_size_estimator/img/shiny-9.JPG)
+![](inst/sample_size_estimator/img/shiny-7.JPG)
 </div>  
 
 A pdf report of the entire experiment that was carried out can be generated via
