@@ -1,8 +1,25 @@
 
 function(session, input, output) {
   # enables the helper functionality in the UI
-  shinyhelper::observe_helpers(help_dir = "help_mds")
   
+  wd <- getwd()
+  src_dir <- file.path(wd,"scripts")
+  req_files <- list.files(src_dir, full.names = T)
+  
+  for (i in req_files) {
+    tryCatch({
+      source(i)
+    }, error = function(e){
+      print(conditionMessage(e))
+      print(sprintf("Error in sourcing : %s", i))
+    })
+    
+  }
+  
+  conn <<- .logGeneration()
+  message("Log File saved at ", conn$file)
+  
+  shinyhelper::observe_helpers(help_dir = "help_mds")
   # stop the h2o cluster once the app is shutdown
   onStop(function() {
     try({

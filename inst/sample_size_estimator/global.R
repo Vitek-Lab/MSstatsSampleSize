@@ -83,7 +83,7 @@ CSS_BUTTON_RUN <- "background-color: orange;
 #### Shiny functions ####
 tuning_params <- function(...){
   dots <- list(...)
-  params <- read.csv("params.csv", stringsAsFactors = F)
+  params <- readRDS("params.rds")
   op <- list("enable" = F, "ids" = params$id)
   
   if("Parameter Tuning" %in% dots$checkbox){
@@ -135,7 +135,6 @@ format_data <- function(format, count = NULL, annot = NULL, transform = NULL,
     wide <- MSstatsSampleSize::OV_SRM_train
     #examples data from the package
     annot <- MSstatsSampleSize::OV_SRM_train_annotation
-    #setnames(wide,"rn","Protein")
     name <- "Ovarian Cancer SRM study"
   }else{
     stop("Not Defined")
