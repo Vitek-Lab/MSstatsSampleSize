@@ -74,9 +74,9 @@ below.
 application is expected to be transformed by one of the several converters 
 available in the MSstats package. The data is expected to be log transformed.  
 
-<div>![](inst/sample_size_estimator/img/data_types.JPG)</div>
+![](inst/sample_size_estimator/img/data_types.JPG)
 <br>
-<div>![](inst/sample_size_estimator/img/data_up.JPG)</div>  
+![](inst/sample_size_estimator/img/data_up.JPG)
 
 
 ## Simulate Datasets  
@@ -85,10 +85,7 @@ Simulating datasets with the ability to reproduce the simulation experiment is
 provided by this shiny application. Various parameters which are required for 
 the simulation can be tuned and adjusted through this panel.
 
-<div style="width:400px; height:500px; float: right; margin-right: 10px;
-margin-top: 10px; margin-left: 10px; margin-bottom 50px">
 ![](inst/sample_size_estimator/img/sim1.JPG)
-</div>
 
 <br>
 <b>Set Seed:</b> The set seed option, when selected allows the user to specify
@@ -115,10 +112,8 @@ dropdown lets the user select High or Low values to be selected.
 additional data needs to be simulated for validating the results of the model 
 training that occurs in the classification phase of the application.  
 
-<div style="width:400px; height:300px; float: left; margin-right: 10px;
-margin-top: 10px; margin-left: 10px; margin-bottom: 10px">
 ![](inst/sample_size_estimator/img/sim2.JPG)
-</div>
+
 <br>
 <br>
 <br>
@@ -155,10 +150,8 @@ plots are downloadable and can be used for further research.
 
 ## Plan Experiment
 
-<div style="float: right; width:500px; height=500px; margin-right: 10px;
-margin-top: 10px; margin-left: 10px; margin-bottom 10px">
 ![](inst/sample_size_estimator/img/shiny-6.JPG)
-</div>
+
 <br>
 <div>
 The Shiny application has capabilities to use 5 different classification 
@@ -192,11 +185,9 @@ the optimal sample size is highlighted in the Accuracy plot. The protein
 importance plots highlights the most recurring proteins that have been selected
 for model training amongst all the datasets.
 </div>
-<div style="float: center; margin-right: 10px;
-margin-top: 10px; margin-left: 10px; margin-bottom 10px">
+
 ![](inst/sample_size_estimator/img/shiny-9.JPG)
 ![](inst/sample_size_estimator/img/shiny-7.JPG)
-</div>  
 
 A pdf report of the entire experiment that was carried out can be generated via
 the User interface by clicking the <b>Generate Report</b> button. The report 
