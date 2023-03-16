@@ -116,7 +116,7 @@ estimateVar <- function(data, annotation, log2Trans = FALSE, ...) {
         }
 
         # only keep the rows with results
-        GroupMean <- GroupMean[1:count, ]
+        GroupVar <- GroupVar[1:count, ]
         GroupMean <- GroupMean[1:count, ]
         # assign the row and column names
         rownames(GroupVar) <- Proteins
